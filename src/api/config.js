@@ -1,0 +1,7 @@
+/**
+ * @namespace Api
+ */
+module.exports =
+{
+
+}
