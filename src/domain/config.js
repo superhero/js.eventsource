@@ -3,8 +3,15 @@
  */
 module.exports =
 {
-  bootstrap:
+  core:
   {
-    'listen-to-incoming-requests' : 'service/listen-to-incoming-requests'
+    schema:
+    {
+      composer:
+      {
+        'event/*'         : __dirname + '/schema/event/*',
+        'value-object/*'  : __dirname + '/schema/value-object/*'
+      }
+    }
   }
 }

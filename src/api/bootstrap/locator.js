@@ -1,15 +1,15 @@
 const
-RedisBootstrap      = require('.'),
+ApiBootstrap        = require('.'),
 LocatorConstituent  = require('superhero/core/locator/constituent')
 
 /**
  * @memberof Infrastructure
  * @extends {superhero/core/locator/constituent}
  */
-class RedisBootstrapLocator extends LocatorConstituent
+class ApiBootstrapLocator extends LocatorConstituent
 {
   /**
-   * @returns {RedisBootstrap}
+   * @returns {ApiBootstrap}
    */
   locate()
   {
@@ -19,8 +19,8 @@ class RedisBootstrapLocator extends LocatorConstituent
     composer  = this.locator.locate('core/schema/composer'),
     eventbus  = this.locator.locate('core/eventbus')
 
-    return new RedisBootstrap(redis, mysql, composer, eventbus)
+    return new ApiBootstrap(redis, mysql, composer, eventbus)
   }
 }
 
-module.exports = RedisBootstrapLocator
+module.exports = ApiBootstrapLocator
