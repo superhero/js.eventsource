@@ -1,7 +1,6 @@
 const
 redis               = require('redis'),
 RedisRepository     = require('./repository'),
-RedisMapper         = require('./mapper'),
 LocatorConstituent  = require('superhero/core/locator/constituent')
 
 /**

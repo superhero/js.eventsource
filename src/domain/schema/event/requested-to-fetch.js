@@ -6,13 +6,14 @@ const schema =
 {
   'channel':
   {
-    'type'      : 'string',
-    'not-empty' : true
+    'type'        : 'string',
+    'description' : 'the channel which will be used to respond with the resulting data',
+    'not-empty'   : true
   },
   'query':
   {
-    'type'      : 'schema',
-    'schema'    : 'value-object/query-fetch'
+    'type'        : 'schema',
+    'schema'      : 'value-object/query-fetch'
   }
 }
 

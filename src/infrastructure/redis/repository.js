@@ -18,7 +18,7 @@ class RedisRepository
     this.gateway.subscribe(channel)
   }
 
-  publish(data)
+  publish(channel, data)
   {
     const stringified = JSON.stringify(data)
     this.gateway.publish(channel, stringified)
