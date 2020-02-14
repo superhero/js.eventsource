@@ -18,7 +18,7 @@ class ApiBootstrap
   {
     this.redis.subscribeToRequests()
 
-    this.redis.gateway.on('message', async (channel, message) =>
+    this.redis.gateway.onMessage(async (channel, message) =>
     {
       // all messages are assumed to be encodee as stringified json objects
       const parsedMessage = JSON.parse(message)
@@ -60,7 +60,7 @@ class ApiBootstrap
           // By emitting the message, the message can be picked up by a listener to resume or destroy an already
           // paused mysql activity, based on the message type..
 
-          this.eventbus.emit(channel, message)
+          this.eventbus.emit(channel, parsedMessage)
         }
       }
     })
@@ -69,14 +69,14 @@ class ApiBootstrap
   /**
    * @private
    */
-  streamOnResult(event, stream, package)
+  streamOnResult(event, stream, packet)
   {
     // pause the mysql connection to prevent a stack overlow when working with large data in multiple services
     // by pausing the connection we ensure that only one row is processed, before the next is processed
     stream._connection.pause()
 
     // listen to the channel to see when the client has accepted the published package, and the client is ready
-    // to accept a new package, or if the connection is to be destroyed.
+    // to accept a new packet, or if the connection is to be destroyed.
     // attach a listener that only listenes to the next message
     this.eventbus.once(event.channel, (message) =>
     {
@@ -108,8 +108,8 @@ class ApiBootstrap
       this.eventbus.removeAllListeners(event.channel)
     }, 5e3)
 
-    // broadcast the package over the defined channel
-    this.redis.publish(event.channel, package)
+    // broadcast the packet over the defined channel
+    this.redis.publish(event.channel, packet)
   }
 
   /**

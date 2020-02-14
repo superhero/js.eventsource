@@ -8,11 +8,12 @@
   "scripts": {
     "docs-coverage": "nyc mocha && nyc report --reporter=html --report-dir=./docs/generated/coverage",
     "docs-tests": "mocha --reporter mochawesome --reporter-options reportDir=docs/generated/test,reportFilename=index,showHooks=always",
-    "test": "nyc mocha",
+    "test": "mocha",
     "start": "node ./src/index.js"
   },
   "dependencies": {
     "superhero": "2.0.0-beta.64",
+    "@superhero/db": "0.1.0",
     "mysql": "2.18.1",
     "json-sql-builder2": "1.0.24",
     "redis": "2.8.0"
@@ -33,8 +34,7 @@
     "full-trace": true,
     "timeout": 5000,
     "spec": [
-      "./test/**/*.test.js",
-      "./src/**/*.test.js"
+      "./test/**/*.test.js"
     ]
   }
 }

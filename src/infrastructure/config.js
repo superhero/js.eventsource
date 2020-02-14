@@ -3,6 +3,13 @@
  */
 module.exports =
 {
+  core:
+  {
+    locator:
+    {
+      'repository/*' : __dirname + '/*'
+    }
+  },
   infrastructure:
   {
     mysql:
@@ -10,10 +17,10 @@ module.exports =
       gateway:
       {
         connections : '5',
-        host        : 'docker.adamo.es',
-        port        : '3309',
+        host        : 'localhost',
+        port        : '3306',
         user        : 'root',
-        password    : 'M1cB2DNIGALeu6nx',
+        password    : 'top-secret-password',
         charset     : 'utf8'
       }
     },

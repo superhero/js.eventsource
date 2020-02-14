@@ -9,7 +9,7 @@ describe('integration test', () =>
   before((done) =>
   {
     const
-    CoreFactory = require('@superhero/core/factory'),
+    CoreFactory = require('superhero/core/factory'),
     coreFactory = new CoreFactory
 
     core = coreFactory.create()
@@ -20,20 +20,20 @@ describe('integration test', () =>
 
     core.load()
 
-    core.locate('bootstrap').bootstrap().then(done)
+    core.locate('core/bootstrap').bootstrap().then(done)
   })
 
   after(() =>
   {
-    core.locate('http/server').close()
-    core.locate('infrastructure/gateway/mysql').close()
+    core.locate('repository/redis').gateway.close()
+    core.locate('repository/mysql').gateway.close()
   })
 
-  it('can send a "persist" message to command information to be stored in the system', (done) =>
+  it('can send a "persist" message to store information in the system', (done) =>
   {
     const
     redis     = core.locate('repository/redis'),
-    composer  = core.locate('core/composer'),
+    composer  = core.locate('core/schema/composer'),
     eventbus  = core.locate('core/eventbus'),
     channel   = 'test-persist-channel',
     query     =
@@ -42,11 +42,10 @@ describe('integration test', () =>
       {
         '$documents':
         {
-          'timestamp' : Date.now(),
-          'pid'       : 'test-id',
-          'domain'    : 'test-domain',
-          'name'      : 'test-event',
-          'data'      :
+          'pid'     : 'test-id',
+          'domain'  : 'test-domain',
+          'name'    : 'test-event',
+          'data'    :
           {
             'foo' : 'bar',
             'baz' : 'qux'
@@ -57,19 +56,12 @@ describe('integration test', () =>
     event = composer.compose('event/requested-to-persist', { channel, query })
 
     redis.subscribe(channel)
-    eventbus.on(channel, (data) =>
-    {
-      console.log(data)
-      done()
-    })
+    eventbus.on(channel, (data) => data === 'end' && done())
     redis.publish('persist', event)
   })
 
-  /*
   it('can send a "fetch" message to query for information', async function()
   {
-
-
     const url   = 'http://localhost:9001/v1/interconnection-points'
     const data  =
     {
@@ -83,5 +75,4 @@ describe('integration test', () =>
     core.locate('console').log(response)
     expect(response.status).to.be.equal(200)
   })
-  */
 })

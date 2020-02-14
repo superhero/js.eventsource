@@ -2,7 +2,7 @@ const
 mysql               = require('mysql'),
 Db                  = require('@superhero/db'),
 AdapterFactory      = require('@superhero/db/adapter/mysql/factory'),
-json2sql            = require('json-sql-builder2'),
+SQLBuilder          = require('json-sql-builder2'),
 MysqlRepository     = require('./repository'),
 LocatorConstituent  = require('superhero/core/locator/constituent')
 
@@ -25,6 +25,7 @@ class MysqlRepositoryLocator extends LocatorConstituent
     adapterFactory  = new AdapterFactory(),
     mysqlAdapter    = adapterFactory.create(mysql, adaptorOptions),
     mysqlGateway    = new Db(mysqlAdapter, filePath, fileSuffix),
+    json2sql        = new SQLBuilder('MySQL'),
     repository      = new MysqlRepository(mysqlGateway, json2sql)
 
     return repository
