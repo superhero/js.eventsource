@@ -4,24 +4,23 @@
  */
 const schema =
 {
+  /*
   '$columns':
   {
-    'type'      : 'object',
+    'type'      : 'json',
     'optional'  : true
   },
+  */
   '$from':
   {
     'type'      : 'string',
-    'default'   : 'eventsource.event',
-    'enum'      :
-    [
-      'eventsource.event'
-    ]
+    'default'   : 'eventsource.event'
   },
   '$where':
   {
-    'type'      : 'object'
-  },
+    'type'        : 'json',
+    'stringified' : false
+  }
 }
 
 module.exports = schema

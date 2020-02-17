@@ -29,7 +29,6 @@ const schema =
   'data':
   {
     'type'        : 'json',
-    'optional'    : true,
     'stringified' : true
   }
 }

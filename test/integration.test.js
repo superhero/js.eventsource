@@ -60,19 +60,27 @@ describe('integration test', () =>
     redis.publish('persist', event)
   })
 
-  it('can send a "fetch" message to query for information', async function()
+  it('can send a "fetch" message to query for information', (done) =>
   {
-    const url   = 'http://localhost:9001/v1/interconnection-points'
-    const data  =
+    const
+    redis     = core.locate('repository/redis'),
+    composer  = core.locate('core/schema/composer'),
+    eventbus  = core.locate('core/eventbus'),
+    channel   = 'test-fetch-channel',
+    query     =
     {
-      name        : 'foo',
-      ip          : '127.0.0.1',
-      port        : '2',
-      operator_id : 1
-    }
-    const response = await httpRequest.post({ url, data })
-    pointId = response.data.id
-    core.locate('console').log(response)
-    expect(response.status).to.be.equal(200)
+      '$select':
+      {
+        '$where':
+        {
+          'pid' : 'test-id'
+        }
+      }
+    },
+    event = composer.compose('event/requested-to-fetch', { channel, query })
+
+    redis.subscribe(channel)
+    eventbus.on(channel, (data) => data === 'end' && done())
+    redis.publish('fetch', event)
   })
 })

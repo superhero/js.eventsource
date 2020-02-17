@@ -7,11 +7,7 @@ const schema =
   '$table':
   {
     'type'    : 'string',
-    'default' : 'eventsource.event',
-    'enum'    :
-    [
-      'eventsource.event'
-    ]
+    'default' : 'eventsource.event'
   },
   '$documents':
   {
