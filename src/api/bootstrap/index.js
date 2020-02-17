@@ -32,8 +32,6 @@ class ApiBootstrap
           event   = this.composer.compose('event/requested-to-fetch', parsedMessage),
           stream  = await this.mysql.fetchStream(event)
 
-
-
           // listen to the result event to handle all row packages streamed by the mysql connection
           stream.on('result', this.streamOnResult.bind(this, event, stream))
 
