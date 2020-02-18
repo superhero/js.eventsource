@@ -1,9 +1,5 @@
 describe('integration test', () =>
 {
-  const
-  expect  = require('chai').expect,
-  context = require('mochawesome/addContext')
-
   let core
 
   before((done) =>
