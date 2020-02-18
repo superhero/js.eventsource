@@ -27,7 +27,11 @@ class RedisGateway
 
   onMessage(callback)
   {
-    this.subscriber.on('message', callback)
+    this.subscriber.on('message', (channel, message) =>
+    {
+      const parsedMessage = JSON.parse(message)
+      callback(channel, parsedMessage)
+    })
   }
 
   close()

@@ -20,16 +20,13 @@ class ApiBootstrap
 
     this.redis.gateway.onMessage(async (channel, message) =>
     {
-      // all messages are assumed to be encodee as stringified json objects
-      const parsedMessage = JSON.parse(message)
-
       // route behaviour depending on the channel of the incomming message
       switch(channel)
       {
         case 'fetch':
         {
           const
-          event   = this.composer.compose('event/requested-to-fetch', parsedMessage),
+          event   = this.composer.compose('event/requested-to-fetch', message),
           stream  = await this.mysql.fetchStream(event)
 
           // listen to the result event to handle all row packages streamed by the mysql connection
@@ -46,7 +43,7 @@ class ApiBootstrap
         case 'persist':
         {
           const
-          event   = this.composer.compose('event/requested-to-persist', parsedMessage),
+          event   = this.composer.compose('event/requested-to-persist', message),
           result  = await this.mysql.persist(event)
 
           this.redis.publish(event.channel, result)
@@ -60,7 +57,7 @@ class ApiBootstrap
           // By emitting the message, the message can be picked up by a listener to resume or destroy an already
           // paused mysql activity, based on the message type..
 
-          this.eventbus.emit(channel, parsedMessage)
+          this.eventbus.emit(channel, message)
         }
       }
     })
