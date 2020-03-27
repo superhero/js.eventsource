@@ -17,19 +17,19 @@ module.exports =
       gateway:
       {
         connections : '5',
-        host        : 'localhost',
-        port        : '3306',
-        user        : 'root',
-        password    : 'top-secret-password',
-        charset     : 'utf8'
+        host        : process.env.MYSQL_HOST,
+        port        : process.env.MYSQL_PORT,
+        user        : process.env.MYSQL_USER,
+        password    : process.env.MYSQL_PASS,
+        charset     : process.env.MYSQL_CHAR
       }
     },
     redis:
     {
       gateway:
       {
-        host: '127.0.0.1',
-        port: '6379'
+        host: process.env.REDIS_HOST,
+        port: process.env.REDIS_PORT
       }
     }
   }
