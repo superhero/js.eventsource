@@ -2,7 +2,7 @@
   "name": "@superhero/eventsource",
   "version": "0.0.1",
   "description": "A solution for an eventsource implementation, working with mysql for persistence and redis for comunication",
-  "repository": "git@bitbucket.org:adamodev/eventsource-v2.git",
+  "repository": "git@github.com:superhero/js.eventsource.git",
   "license": "MIT",
   "main": "src/index.js",
   "scripts": {
