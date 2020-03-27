@@ -6,7 +6,7 @@ RedisRepository     = require('./repository')
 /**
  * @memberof Infrastructure
  */
-class RedisRepositoryLocator
+class RedisRepositoryFactory
 {
   /**
    * @returns {RedisRepository}
