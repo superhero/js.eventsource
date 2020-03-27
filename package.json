@@ -1,9 +1,9 @@
 {
-  "name": "eventsource-v2",
+  "name": "@superhero/eventsource",
   "version": "0.0.1",
   "description": "A solution for an eventsource implementation, working with mysql for persistence and redis for comunication",
   "repository": "git@bitbucket.org:adamodev/eventsource-v2.git",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "main": "src/index.js",
   "scripts": {
     "docs-coverage": "nyc mocha && nyc report --reporter=html --report-dir=./docs/generated/coverage",

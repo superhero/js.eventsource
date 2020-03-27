@@ -29,6 +29,11 @@ class RedisRepository
     this.subscribe('persist')
   }
 
+  onMessage(callback)
+  {
+    this.gateway.onMessage(callback)
+  }
+
   emitEnd(channel)
   {
     this.publish(channel, 'end')

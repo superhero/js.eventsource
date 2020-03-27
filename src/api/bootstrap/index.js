@@ -18,7 +18,7 @@ class ApiBootstrap
   {
     this.redis.subscribeToRequests()
 
-    this.redis.gateway.onMessage(async (channel, message) =>
+    this.redis.onMessage(async (channel, message) =>
     {
       // route behaviour depending on the channel of the incomming message
       switch(channel)

@@ -1,8 +1,6 @@
 const
-redis               = require('redis'),
-RedisGateway        = require('./gateway'),
-RedisRepository     = require('./repository'),
-LocatorConstituent  = require('superhero/core/locator/constituent')
+RedisRepositoryFactory  = require('./factory'),
+LocatorConstituent      = require('superhero/core/locator/constituent')
 
 /**
  * @memberof Infrastructure
@@ -18,11 +16,10 @@ class RedisRepositoryLocator extends LocatorConstituent
     const
     configuration = this.locator.locate('core/configuration'),
     options       = configuration.find('infrastructure/redis/gateway'),
-    subscriber    = redis.createClient(options),
-    publisher     = redis.createClient(options),
-    gateway       = new RedisGateway(subscriber, publisher)
+    factory       = new RedisRepositoryFactory(),
+    repository    = factory.create(options)
 
-    return new RedisRepository(gateway)
+    return repository
   }
 }
 

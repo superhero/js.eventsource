@@ -1,6 +1,85 @@
-# eventsource-v2
+# eventsource
 
-Expected environment variables to be set:
+This project has both a server and a client solution.
+
+> This project is used by me in some projects I have in production. I did not published this with the intent of others to use it. If you are looking at this code with the interest of working with it, throw me a line on github and tell me if there is any documentation you may require.
+
+## Install
+
+`npm install superhero`
+
+...or just set the dependency in your `package.json` file:
+
+```json
+{
+  "dependencies":
+  {
+    "@superhero/eventsource": "*"
+  }
+}
+```
+
+## Examples
+
+Example to use on the client side:
+
+```js
+const
+eventsourceFactory  = require('@superhero/eventsource'),
+eventsourceClient   = eventsourceFactory.create({ host:'127.0.0.1', port:'6379' })
+
+eventsourceClient.onMessage(channel, (data) => console.log(channel, data))
+
+// persisting
+{
+  const
+  channel = 'test-persist-channel',
+  query   =
+  {
+    '$insert':
+    {
+      '$documents':
+      {
+        'pid'     : 'test-id',
+        'domain'  : 'test-domain',
+        'name'    : 'test-event',
+        'data'    :
+        {
+          'foo' : 'bar',
+          'baz' : 'qux'
+        }
+      }
+    }
+  },
+  event = { channel, query }
+
+  eventsourceClient.subscribe(channel)
+  eventsourceClient.publish('persist', event)
+}
+// fetching
+{
+  const
+  channel = 'test-fetch-channel',
+  query   =
+  {
+    '$select':
+    {
+      '$where':
+      {
+        'pid' : 'test-id'
+      }
+    }
+  },
+  event = { channel, query }
+
+  eventsourceClient.subscribe(channel)
+  eventsourceClient.publish('fetch', event)
+}
+```
+
+## Environment variables
+
+Expected environment variables to be set if you start this component as a server:
 
 - `MYSQL_HOST`
 - `MYSQL_PORT`
@@ -11,6 +90,8 @@ Expected environment variables to be set:
 - `REDIS_PORT`
 
 ---
+
+## Notes
 
 The eventsource server listens on two redis channels by default; the `fetch` and the `persist` channels. Both the `fetch` and `persist` channels accept a similar message that defines the name of a new redis channel where the response is expected to be broadcasted, and a sql query formated as a JSON object *( read more about the expected syntax of the **JSON/SQL** query at the repository this solution is dependent on: [json-sql-builder2](https://www.npmjs.com/package/json-sql-builder2) )*
 
