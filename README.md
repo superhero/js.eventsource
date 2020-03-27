@@ -28,7 +28,7 @@ const
 eventsourceFactory  = require('@superhero/eventsource'),
 eventsourceClient   = eventsourceFactory.create({ host:'127.0.0.1', port:'6379' })
 
-eventsourceClient.onMessage(channel, (data) => console.log(channel, data))
+eventsourceClient.onMessage((channel, data) => console.log(channel, data))
 
 // persisting
 {
