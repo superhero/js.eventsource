@@ -1,10 +1,10 @@
 {
   "name": "@superhero/eventsource",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A solution for an eventsource implementation, working with mysql for persistence and redis for comunication",
   "repository": "git@github.com:superhero/js.eventsource.git",
   "license": "MIT",
-  "main": "src/index.js",
+  "main": "index.js",
   "scripts": {
     "docs-coverage": "nyc mocha && nyc report --reporter=html --report-dir=./docs/generated/coverage",
     "docs-tests": "mocha --reporter mochawesome --reporter-options reportDir=docs/generated/test,reportFilename=index,showHooks=always",
