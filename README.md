@@ -28,8 +28,6 @@ const
 eventsourceFactory  = require('@superhero/eventsource'),
 eventsourceClient   = eventsourceFactory.create({ host:'127.0.0.1', port:'6379' })
 
-eventsourceClient.onMessage((channel, data) => console.log(channel, data))
-
 // persisting
 {
   const
@@ -54,6 +52,27 @@ eventsourceClient.onMessage((channel, data) => console.log(channel, data))
   event = { channel, query }
 
   eventsourceClient.subscribe(channel)
+  eventsourceClient.on(channel, (message) =>
+  {
+    if(data === 'end')
+    {
+      console.log(channel, 'the end of the channel has been reached')
+    }
+    else
+    {
+      console.log(channel, 'message received', message)
+      /*
+      { fieldCount: 0,
+        affectedRows: 1,
+        insertId: 0,
+        serverStatus: 2,
+        warningCount: 0,
+        message: '',
+        protocol41: true,
+        changedRows: 0 }
+      */
+    }
+  })
   eventsourceClient.publish('persist', event)
 }
 // fetching
@@ -73,6 +92,25 @@ eventsourceClient.onMessage((channel, data) => console.log(channel, data))
   event = { channel, query }
 
   eventsourceClient.subscribe(channel)
+  eventsourceClient.on(channel, (message) =>
+  {
+    if(data === 'end')
+    {
+      console.log(channel, 'the end of the channel has been reached')
+    }
+    else
+    {
+      console.log(channel, 'message received', message)
+      /*
+      { timestamp: '2020-04-06T11:35:18.414Z',
+        pid: 'test-id',
+        domain: 'test-domain',
+        name: 'test-event',
+        data: '{"baz": "qux", "foo": "bar"}' }
+      */
+      eventsourceClient.publish('fetch-next', { channel })
+    }
+  })
   eventsourceClient.publish('fetch', event)
 }
 ```

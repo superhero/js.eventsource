@@ -16,55 +16,43 @@ class ApiBootstrap
    */
   bootstrap()
   {
-    this.redis.subscribeToRequests()
+    this.redis.subscribe('fetch')
+    this.redis.subscribe('fetch-next')
+    this.redis.subscribe('persist')
 
-    this.redis.onMessage(async (channel, message) =>
+    this.redis.on('fetch', async (message) =>
     {
-      // route behaviour depending on the channel of the incomming message
-      switch(channel)
-      {
-        case 'fetch':
-        {
-          const
-          event   = this.composer.compose('event/requested-to-fetch', message),
-          stream  = await this.mysql.fetchStream(event)
+      const
+      event   = this.composer.compose('event/requested-to-fetch', message),
+      stream  = await this.mysql.fetchStream(event)
 
-          // listen to the result event to handle all row packages streamed by the mysql connection
-          stream.on('result', this.streamOnResult.bind(this, event, stream))
+      // listen to the result event to handle all row packages streamed by the mysql connection
+      stream.on('result', this.streamOnResult.bind(this, event, stream))
 
-          // any error will be handled by resetting
-          stream.on('error', this.streamOnError.bind(this, event, stream))
+      // any error will be handled by resetting
+      stream.on('error', this.streamOnError.bind(this, event, stream))
 
-          // emit an end message to signal to the client that transmission has completed
-          stream.on('end', this.streamOnEnd.bind(this, event))
+      // emit an end message to signal to the client that transmission has completed
+      stream.on('end', this.streamOnEnd.bind(this, event))
+    })
 
-          break
-        }
-        case 'fetch-next':
-        {
-          // By emitting the message, the message can be picked up by a listener to resume or destroy an already
-          // paused mysql activity, based on the message type..
+    this.redis.on('fetch-next', async (message) =>
+    {
+      // By emitting the message, the message can be picked up by a listener to resume or destroy an already
+      // paused mysql activity, based on the message type..
 
-          const event = this.composer.compose('event/requested-to-fetch-next', message)
-          this.eventbus.emit(event.channel)
-          break
-        }
-        case 'persist':
-        {
-          const
-          event   = this.composer.compose('event/requested-to-persist', message),
-          result  = await this.mysql.persist(event)
+      const event = this.composer.compose('event/requested-to-fetch-next', message)
+      this.eventbus.emit(event.channel)
+    })
 
-          this.redis.publish(event.channel, result)
-          this.redis.emitEnd(event.channel)
+    this.redis.on('persist', async (message) =>
+    {
+      const
+      event   = this.composer.compose('event/requested-to-persist', message),
+      result  = await this.mysql.persist(event)
 
-          break
-        }
-        default:
-        {
-          // could never be any other stream as we do not subscribe to any other stream
-        }
-      }
+      this.redis.publish(event.channel, result)
+      this.redis.emitEnd(event.channel)
     })
   }
 

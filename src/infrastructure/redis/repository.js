@@ -5,7 +5,10 @@ class RedisRepository
 {
   constructor(gateway)
   {
-    this.gateway = gateway
+    this.gateway    = gateway
+    this.listeners  = {}
+
+    this.gateway.onMessage(this.routeMessage.bind(this))
   }
 
   unsubscribe(channel)
@@ -23,16 +26,34 @@ class RedisRepository
     this.gateway.publish(channel, data)
   }
 
-  subscribeToRequests()
+  /**
+   * @private
+   */
+  routeMessage(channel, message)
   {
-    this.subscribe('fetch')
-    this.subscribe('fetch-next')
-    this.subscribe('persist')
+    if(channel in this.listeners)
+    {
+      this.listeners[channel].forEach((listener) => listener(message))
+
+      if(message === 'end')
+      {
+        delete this.listeners[channel]
+      }
+    }
+    else
+    {
+      console.log(`message recieved over channel: "${channel}", but no listener exists for that channel, message:`, message)
+    }
   }
 
-  onMessage(callback)
+  on(channel, callback)
   {
-    this.gateway.onMessage(callback)
+    if(!Array.isArray(this.listeners[channel]))
+    {
+      this.listeners[channel] = []
+    }
+
+    this.listeners[channel].push(callback)
   }
 
   emitEnd(channel)

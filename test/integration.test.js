@@ -52,7 +52,14 @@ describe('integration test', () =>
     event = composer.compose('event/requested-to-persist', { channel, query })
 
     redis.subscribe(channel)
-    redis.onMessage((chan, data) => chan === channel && data === 'end' && (redis.gateway.close() || done()))
+    redis.on(channel, (message) =>
+    {
+      if(message === 'end')
+      {
+        redis.gateway.close()
+        done()
+      }
+    })
     setTimeout(() => redis.publish('persist', event))
   })
 
@@ -75,14 +82,15 @@ describe('integration test', () =>
     event = composer.compose('event/requested-to-fetch', { channel, query })
 
     redis.subscribe(channel)
-    redis.onMessage((chan, data) =>
+    redis.on(channel, (message) =>
     {
-      if(chan === channel && data === 'end')
+      console.log(channel, message)
+      if(message === 'end')
       {
         redis.gateway.close()
         done()
       }
-      else if(chan === channel)
+      else
       {
         redis.publish('fetch-next', { channel })
       }
