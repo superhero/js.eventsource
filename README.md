@@ -93,7 +93,9 @@ Expected environment variables to be set if you start this component as a server
 
 ## Notes
 
-The eventsource server listens on two redis channels by default; the `fetch` and the `persist` channels. Both the `fetch` and `persist` channels accept a similar message that defines the name of a new redis channel where the response is expected to be broadcasted, and a sql query formated as a JSON object *( read more about the expected syntax of the **JSON/SQL** query at the repository this solution is dependent on: [json-sql-builder2](https://www.npmjs.com/package/json-sql-builder2) )*
+The eventsource server listens on three redis channels by default; the `fetch`, `fetch-next` and the `persist` channels. Both the `fetch` and `persist` channels accept a similar message that defines the name of a new redis channel where the response is expected to be broadcasted, and a sql query formated as a JSON object *( read more about the expected syntax of the **JSON/SQL** query at the repository this solution is dependent on: [json-sql-builder2](https://www.npmjs.com/package/json-sql-builder2) )*
+
+The `fetch-next` channel accepts a message that defines what channel the server should resume the mysql stream and publish the next row over.
 
 A client connects to the same redis server that the eventsource is connected to and broadcasts a message over one of the default channels. The eventsource system will validate that the message has the required data defined; the sql query which will be used to query the mysql database, and the channel which the mysql response will be transmitted over.
 

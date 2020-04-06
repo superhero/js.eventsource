@@ -40,6 +40,15 @@ class ApiBootstrap
 
           break
         }
+        case 'fetch-next':
+        {
+          // By emitting the message, the message can be picked up by a listener to resume or destroy an already
+          // paused mysql activity, based on the message type..
+
+          const event = this.composer.compose('event/requested-to-fetch-next', message)
+          this.eventbus.emit(event.channel)
+          break
+        }
         case 'persist':
         {
           const
@@ -53,11 +62,7 @@ class ApiBootstrap
         }
         default:
         {
-          // If the channel is unknown, then it is assumed to be an open channel for a specific stream
-          // By emitting the message, the message can be picked up by a listener to resume or destroy an already
-          // paused mysql activity, based on the message type..
-
-          this.eventbus.emit(channel, message)
+          // could never be any other stream as we do not subscribe to any other stream
         }
       }
     })
@@ -66,7 +71,7 @@ class ApiBootstrap
   /**
    * @private
    */
-  streamOnResult(event, stream, packet)
+  streamOnResult(event, stream, packet, ...rest)
   {
     // pause the mysql connection to prevent a stack overlow when working with large data in multiple services
     // by pausing the connection we ensure that only one row is processed, before the next is processed

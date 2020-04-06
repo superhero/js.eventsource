@@ -26,6 +26,7 @@ class RedisRepository
   subscribeToRequests()
   {
     this.subscribe('fetch')
+    this.subscribe('fetch-next')
     this.subscribe('persist')
   }
 

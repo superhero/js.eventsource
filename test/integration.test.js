@@ -29,9 +29,8 @@ describe('integration test', () =>
   it('can send a "persist" message to store information in the system', (done) =>
   {
     const
-    redis     = core.locate('repository/redis'),
+    redis     = require('../').create(),
     composer  = core.locate('core/schema/composer'),
-    eventbus  = core.locate('core/eventbus'),
     channel   = 'test-persist-channel',
     query     =
     {
@@ -53,16 +52,15 @@ describe('integration test', () =>
     event = composer.compose('event/requested-to-persist', { channel, query })
 
     redis.subscribe(channel)
-    eventbus.on(channel, (data) => data === 'end' && done())
-    redis.publish('persist', event)
+    redis.onMessage((chan, data) => chan === channel && data === 'end' && (redis.gateway.close() || done()))
+    setTimeout(() => redis.publish('persist', event))
   })
 
   it('can send a "fetch" message to query for information', (done) =>
   {
     const
-    redis     = core.locate('repository/redis'),
+    redis     = require('../').create(),
     composer  = core.locate('core/schema/composer'),
-    eventbus  = core.locate('core/eventbus'),
     channel   = 'test-fetch-channel',
     query     =
     {
@@ -77,7 +75,18 @@ describe('integration test', () =>
     event = composer.compose('event/requested-to-fetch', { channel, query })
 
     redis.subscribe(channel)
-    eventbus.on(channel, (data) => data === 'end' && done())
-    redis.publish('fetch', event)
+    redis.onMessage((chan, data) =>
+    {
+      if(chan === channel && data === 'end')
+      {
+        redis.gateway.close()
+        done()
+      }
+      else if(chan === channel)
+      {
+        redis.publish('fetch-next', { channel })
+      }
+    })
+    setTimeout(() => redis.publish('fetch', event))
   })
 })
