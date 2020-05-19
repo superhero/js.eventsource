@@ -4,6 +4,8 @@ describe('integration test', () =>
 
   before((done) =>
   {
+    console.log('process.env:', process.env)
+
     const
     CoreFactory = require('superhero/core/factory'),
     coreFactory = new CoreFactory
