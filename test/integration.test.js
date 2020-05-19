@@ -13,7 +13,7 @@ describe('integration test', () =>
     core.add('api')
     core.add('domain')
     core.add('infrastructure')
-    core.add('test', __dirname)
+    // core.add('test', __dirname)
 
     core.load()
 
