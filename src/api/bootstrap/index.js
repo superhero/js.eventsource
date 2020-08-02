@@ -3,12 +3,13 @@
  */
 class ApiBootstrap
 {
-  constructor(redis, mysql, composer, eventbus)
+  constructor(redis, mysql, composer, eventbus, console)
   {
     this.redis    = redis
     this.mysql    = mysql
     this.composer = composer
     this.eventbus = eventbus
+    this.console  = console
   }
 
   /**
@@ -26,6 +27,8 @@ class ApiBootstrap
       event   = this.composer.compose('event/requested-to-fetch', message),
       stream  = await this.mysql.fetchStream(event)
 
+      this.console.log('fecth event:', event)
+
       // listen to the result event to handle all row packages streamed by the mysql connection
       stream.on('result', this.streamOnResult.bind(this, event, stream))
 
@@ -42,14 +45,21 @@ class ApiBootstrap
       // paused mysql activity, based on the message type..
 
       const event = this.composer.compose('event/requested-to-fetch-next', message)
+      
+      this.console.log('fecth-next event:', event)
+
       this.eventbus.emit(event.channel)
     })
 
     this.redis.on('persist', async (message) =>
     {
-      const
-      event   = this.composer.compose('event/requested-to-persist', message),
-      result  = await this.mysql.persist(event)
+      const event = this.composer.compose('event/requested-to-persist', message)
+
+      this.console.log('persist event:', event)
+
+      const result = await this.mysql.persist(event)
+
+      this.console.log('channel:', event.channel, 'result:', result)
 
       this.redis.publish(event.channel, result)
       this.redis.emitEnd(event.channel)
@@ -65,11 +75,28 @@ class ApiBootstrap
     // by pausing the connection we ensure that only one row is processed, before the next is processed
     stream._connection.pause()
 
+    // timeout after 5 sec
+    const timeoutId = setTimeout(() =>
+    {
+      this.console.log('channel:', event.channel, 'timeout id:', timeoutId, 'timeout')
+
+      // publish a timeout message to the channel so that the client can take action accordingly
+      this.redis.publish(event.channel, 'timeout')
+
+      // destroy the mysql connection to prevent resource allocation
+      stream._connection.destroy()
+
+      // removing the listener that listens for incoming messages on the same channel
+      this.eventbus.removeAllListeners(event.channel)
+    }, 5e3)
+
     // listen to the channel to see when the client has accepted the published package, and the client is ready
     // to accept a new packet, or if the connection is to be destroyed.
     // attach a listener that only listenes to the next message
     this.eventbus.once(event.channel, (message) =>
     {
+      this.console.log('channel:', event.channel, 'timeout id:', timeoutId, message)
+
       // clear the timeout once we recieve a "pong" message from the client
       clearTimeout(timeoutId)
 
@@ -85,18 +112,7 @@ class ApiBootstrap
       }
     })
 
-    // timeout after 5 sec
-    const timeoutId = setTimeout(() =>
-    {
-      // publish a timeout message to the channel so that the client can take action accordingly
-      this.redis.publish(event.channel, 'timeout')
-
-      // destroy the mysql connection to prevent resource allocation
-      stream._connection.destroy()
-
-      // removing the listener that listens for incoming messages on the same channel
-      this.eventbus.removeAllListeners(event.channel)
-    }, 5e3)
+    this.console.log('channel:', event.channel, 'timeout id:', timeoutId, 'packet:', packet)
 
     // broadcast the packet over the defined channel
     this.redis.publish(event.channel, packet)
@@ -107,14 +123,14 @@ class ApiBootstrap
    */
   streamOnError(event, stream, error)
   {
+    // log the error message to be able to know what dafaq went wrong...
+    this.console.log('channel:', event.channel, 'error:', error)
+
     // broadcasted an error message over the designated channel for the client to act according to
     this.redis.publish(event.channel, 'error')
 
     // destroy the mysql connection to prevent resource allocation
     stream._connection.destroy()
-
-    // log the error message to be able to know what dafaq went wrong...
-    console.log('error', __filename, error)
   }
 
   /**
@@ -122,6 +138,7 @@ class ApiBootstrap
    */
   streamOnEnd(event)
   {
+    this.console.log('channel:', event.channel, 'ended')
     this.redis.emitEnd(event.channel)
   }
 }

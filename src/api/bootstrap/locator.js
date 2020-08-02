@@ -17,9 +17,10 @@ class ApiBootstrapLocator extends LocatorConstituent
     redis     = this.locator.locate('repository/redis'),
     mysql     = this.locator.locate('repository/mysql'),
     composer  = this.locator.locate('core/schema/composer'),
-    eventbus  = this.locator.locate('core/eventbus')
+    eventbus  = this.locator.locate('core/eventbus'),
+    console   = this.locator.locate('core/console')
 
-    return new ApiBootstrap(redis, mysql, composer, eventbus)
+    return new ApiBootstrap(redis, mysql, composer, eventbus, console)
   }
 }
 
