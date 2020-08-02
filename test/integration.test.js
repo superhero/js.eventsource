@@ -4,8 +4,6 @@ describe('integration test', () =>
 
   before((done) =>
   {
-    console.log('process.env:', process.env)
-
     const
     CoreFactory = require('superhero/core/factory'),
     coreFactory = new CoreFactory
@@ -15,7 +13,7 @@ describe('integration test', () =>
     core.add('api')
     core.add('domain')
     core.add('infrastructure')
-    // core.add('test', __dirname)
+    core.add('test', __dirname)
 
     core.load()
 
@@ -27,6 +25,8 @@ describe('integration test', () =>
     core.locate('repository/redis').gateway.close()
     core.locate('repository/mysql').gateway.close()
   })
+
+  const PID = Date.now().toString(36)
 
   it('can send a "persist" message to store information in the system', (done) =>
   {
@@ -40,7 +40,7 @@ describe('integration test', () =>
       {
         '$documents':
         {
-          'pid'     : 'test-id',
+          'pid'     : PID,
           'domain'  : 'test-domain',
           'name'    : 'test-event',
           'data'    :
@@ -56,6 +56,8 @@ describe('integration test', () =>
     redis.subscribe(channel)
     redis.on(channel, (message) =>
     {
+      console.log(message)
+
       if(message === 'end')
       {
         redis.gateway.close()
@@ -77,7 +79,7 @@ describe('integration test', () =>
       {
         '$where':
         {
-          'pid' : 'test-id'
+          'pid' : PID
         }
       }
     },
@@ -87,6 +89,7 @@ describe('integration test', () =>
     redis.on(channel, (message) =>
     {
       console.log(channel, message)
+
       if(message === 'end')
       {
         redis.gateway.close()
