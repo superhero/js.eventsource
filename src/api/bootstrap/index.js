@@ -77,8 +77,8 @@ class ApiBootstrap
 
     // timeout after 5 sec
     const timeoutId = setTimeout(() =>
-    {
-      this.console.log('channel:', event.channel, 'timeout id:', timeoutId, 'timeout')
+    {   
+      this.console.log('channel:', event.channel, 'timeout')
 
       // publish a timeout message to the channel so that the client can take action accordingly
       this.redis.publish(event.channel, 'timeout')
@@ -95,24 +95,26 @@ class ApiBootstrap
     // attach a listener that only listenes to the next message
     this.eventbus.once(event.channel, (message) =>
     {
-      this.console.log('channel:', event.channel, 'timeout id:', timeoutId, message)
-
       // clear the timeout once we recieve a "pong" message from the client
       clearTimeout(timeoutId)
 
       if(message === 'end')
       {
+        this.console.log('channel:', event.channel, 'ending')
+
         // destroy the mysql stream if the client has requested the transmission  to end prematurely
         stream._connection.destroy()
       }
       else
       {
+        this.console.log('channel:', event.channel, 'resuming', message || '')
+
         // resume the stream if no known exception has been declared by the message body
         stream._connection.resume()
       }
     })
 
-    this.console.log('channel:', event.channel, 'timeout id:', timeoutId, 'packet:', packet)
+    this.console.log('channel:', event.channel, 'packet:', packet)
 
     // broadcast the packet over the defined channel
     this.redis.publish(event.channel, packet)
