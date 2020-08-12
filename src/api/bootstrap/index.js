@@ -140,7 +140,7 @@ class ApiBootstrap
   onError(event, error)
   {
     // log the error message to be able to know what dafaq went wrong...
-    this.console.log('channel:', event.channel, 'error:', error)
+    this.console.error('channel:', event.channel, 'error:', error)
 
     // broadcasted an error message over the designated channel for the client to act according to
     this.redis.publish(event.channel, 'error')
