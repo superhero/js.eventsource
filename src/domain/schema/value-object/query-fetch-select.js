@@ -47,8 +47,8 @@ const schema =
   },
   '$orderBy': 
   {
-    'type'        : 'string',
-    'collection'  : true,
+    'type'        : 'json',
+    'stringified' : false,
     'optional'    : true
   },
   '$limit':

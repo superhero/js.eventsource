@@ -1,6 +1,6 @@
 {
   "name": "@superhero/eventsource",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "A solution for an eventsource implementation, working with mysql for persistence and redis for comunication",
   "repository": "git@github.com:superhero/js.eventsource.git",
   "license": "MIT",
