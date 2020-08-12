@@ -27,9 +27,9 @@ class ApiBootstrap
 
       try
       {
-        const stream  = await this.mysql.fetchStream(event)
+        const stream = await this.mysql.fetchStream(event)
 
-        this.console.log('fecth event:', event)
+        this.console.log('fetch event:', event)
   
         // listen to the result event to handle all row packages streamed by the mysql connection
         stream.on('result', this.streamOnResult.bind(this, event, stream))
@@ -53,7 +53,7 @@ class ApiBootstrap
 
       const event = this.composer.compose('event/requested-to-fetch-next', message)
       
-      this.console.log('fecth-next event:', event)
+      this.console.log('fetch-next event:', event)
 
       this.eventbus.emit(event.channel)
     })
