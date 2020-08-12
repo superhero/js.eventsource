@@ -23,20 +23,27 @@ class ApiBootstrap
 
     this.redis.on('fetch', async (message) =>
     {
-      const
-      event   = this.composer.compose('event/requested-to-fetch', message),
-      stream  = await this.mysql.fetchStream(event)
+      const event = this.composer.compose('event/requested-to-fetch', message)
 
-      this.console.log('fecth event:', event)
+      try
+      {
+        const stream  = await this.mysql.fetchStream(event)
 
-      // listen to the result event to handle all row packages streamed by the mysql connection
-      stream.on('result', this.streamOnResult.bind(this, event, stream))
-
-      // any error will be handled by resetting
-      stream.on('error', this.streamOnError.bind(this, event, stream))
-
-      // emit an end message to signal to the client that transmission has completed
-      stream.on('end', this.streamOnEnd.bind(this, event))
+        this.console.log('fecth event:', event)
+  
+        // listen to the result event to handle all row packages streamed by the mysql connection
+        stream.on('result', this.streamOnResult.bind(this, event, stream))
+  
+        // any error will be handled by resetting
+        stream.on('error', this.streamOnError.bind(this, event, stream))
+  
+        // emit an end message to signal to the client that transmission has completed
+        stream.on('end', this.streamOnEnd.bind(this, event))
+      }
+      catch(error)
+      {
+        this.onError(event, error)
+      }
     })
 
     this.redis.on('fetch-next', async (message) =>
@@ -55,14 +62,21 @@ class ApiBootstrap
     {
       const event = this.composer.compose('event/requested-to-persist', message)
 
-      this.console.log('persist event:', event)
-
-      const result = await this.mysql.persist(event)
-
-      this.console.log('channel:', event.channel, 'result:', result)
-
-      this.redis.publish(event.channel, result)
-      this.redis.emitEnd(event.channel)
+      try
+      {
+        this.console.log('persist event:', event)
+  
+        const result = await this.mysql.persist(event)
+  
+        this.console.log('channel:', event.channel, 'result:', result)
+  
+        this.redis.publish(event.channel, result)
+        this.redis.emitEnd(event.channel)
+      }
+      catch(error)
+      {
+        this.onError(event, error)
+      }
     })
   }
 
@@ -123,13 +137,23 @@ class ApiBootstrap
   /**
    * @private
    */
-  streamOnError(event, stream, error)
+  onError(event, error)
   {
     // log the error message to be able to know what dafaq went wrong...
     this.console.log('channel:', event.channel, 'error:', error)
 
     // broadcasted an error message over the designated channel for the client to act according to
     this.redis.publish(event.channel, 'error')
+
+    this.redis.emitEnd(event.channel)
+  }
+
+  /**
+   * @private
+   */
+  streamOnError(event, stream, error)
+  {
+    this.onError(event, error)
 
     // destroy the mysql connection to prevent resource allocation
     stream._connection.destroy()
