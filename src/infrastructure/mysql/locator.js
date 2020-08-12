@@ -19,6 +19,7 @@ class MysqlRepositoryLocator extends LocatorConstituent
   {
     const
     configuration   = this.locator.locate('core/configuration'),
+    console         = this.locator.locate('core/console'),
     adaptorOptions  = configuration.find('infrastructure/mysql/gateway'),
     filePath        = __dirname + '/sql',
     fileSuffix      = '.sql',
@@ -26,7 +27,7 @@ class MysqlRepositoryLocator extends LocatorConstituent
     mysqlAdapter    = adapterFactory.create(mysql, adaptorOptions),
     mysqlGateway    = new Db(mysqlAdapter, filePath, fileSuffix),
     json2sql        = new SQLBuilder('MySQL'),
-    repository      = new MysqlRepository(mysqlGateway, json2sql)
+    repository      = new MysqlRepository(mysqlGateway, json2sql, console)
 
     return repository
   }

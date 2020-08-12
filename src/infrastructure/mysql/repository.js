@@ -3,10 +3,11 @@
  */
 class MysqlRepository
 {
-  constructor(gateway, json2sql)
+  constructor(gateway, json2sql, console)
   {
     this.gateway  = gateway
     this.json2sql = json2sql
+    this.console  = console
   }
 
   /**
@@ -25,13 +26,23 @@ class MysqlRepository
         }
         else
         {
-          const
-          query   = this.json2sql.build(event.query),
-          stream  = connection.query(query.sql, query.values)
+          try
+          {
+            const 
+            query   = this.json2sql.build(event.query),
+            stream  = connection.query(query.sql, query.values)
 
-          connection.release()
-
-          accept(stream)
+            accept(stream)
+          }
+          catch(error)
+          {
+            this.console.error('error in fetch stream', 'error:', error, 'event:', event)
+            reject(error)
+          }
+          finally
+          {
+            connection.release()
+          }
         }
       })
     })
