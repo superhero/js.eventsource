@@ -1,6 +1,6 @@
 {
   "name": "@superhero/eventsource",
-  "version": "0.0.8",
+  "version": "0.1.0",
   "description": "A solution for an eventsource implementation, working with mysql for persistence and redis for comunication",
   "repository": "git@github.com:superhero/js.eventsource.git",
   "license": "MIT",
@@ -12,11 +12,11 @@
     "start": "node ./src/index.js"
   },
   "dependencies": {
-    "superhero": "2.0.0-beta.64",
-    "@superhero/db": "0.1.0",
+    "superhero": "2.0.16",
+    "@superhero/db": "0.2.0",
     "mysql": "2.18.1",
     "json-sql-builder2": "1.0.24",
-    "redis": "2.8.0"
+    "redis": "3.0.2"
   },
   "devDependencies": {
     "mocha": "6.2.1",
