@@ -11,5 +11,6 @@ CREATE TABLE IF NOT EXISTS `eventsource`.`event`
   `data`      JSON                              NULL
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8 COLLATE utf8_bin;
 
-CREATE INDEX `eventsource_event_pid`  ON `eventsource`.`event` (`pid`(10))                USING BTREE;
-CREATE INDEX `eventsource_event_name` ON `eventsource`.`event` (`domain`(10), `name`(10)) USING BTREE;
+CREATE INDEX `eventsource_event_timestamp`  ON `eventsource`.`event` (`timestamp`)              USING BTREE;
+CREATE INDEX `eventsource_event_pid`        ON `eventsource`.`event` (`pid`(10))                USING BTREE;
+CREATE INDEX `eventsource_event_name`       ON `eventsource`.`event` (`domain`(10), `name`(10)) USING BTREE;
