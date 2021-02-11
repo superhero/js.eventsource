@@ -1,5 +1,5 @@
 /**
- * @namespace Eventsource.Domain
+ * @namespace Eventsource.Schema
  */
 module.exports =
 {
@@ -9,8 +9,7 @@ module.exports =
     {
       composer:
       {
-        'eventsource/shema/event/*' : __dirname + '/event/*',
-        'eventsource/shema/value/*' : __dirname + '/value/*'
+        'eventsource/shema/entity/*' : __dirname + '/entity/*'
       }
     }
   }

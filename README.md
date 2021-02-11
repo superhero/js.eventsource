@@ -144,3 +144,12 @@ If no accepted message is received, a `timeout` message is broadcasted, and the 
 If an unexpected error occurs on the server side, then the server will transmit an `error` message. An `error` message indicates that no further data is expected to be transmitted over that channel.
 
 When the channel has ended, it is expected for both the server and client to unsubscripted to the channel. A channel can end for any of the following reasons, also described above; if the server transmitted an `end`, `error` or `timeout` message; if the client transmitted an `end` message.
+
+
+## V3
+
+The client side of the v3 implementation of the eventsource is using redis streams for the write operations.
+
+The eventsource node is a consumer of the stream
+
+ the eventsource is a consumer that manages eventual consistency in differet adopted

@@ -1,5 +1,5 @@
 /**
- * @namespace Infrastructure
+ * @namespace Eventsource.Test
  */
 module.exports =
 {

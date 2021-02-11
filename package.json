@@ -14,14 +14,14 @@
   "dependencies": {
     "superhero": "2.1.7",
     "@superhero/db": "0.2.0",
-    "mysql": "2.18.1",
     "json-sql-builder2": "1.0.24",
+    "mysql": "2.18.1",
     "redis": "3.0.2"
   },
   "devDependencies": {
+    "chai": "4.2.0",
     "mocha": "6.2.1",
     "mochawesome": "4.1.0",
-    "chai": "4.2.0",
     "nyc": "14.1.1"
   },
   "mocha": {
