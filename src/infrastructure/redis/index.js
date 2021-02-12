@@ -3,11 +3,12 @@
  */
 class Redis
 {
-  constructor(stream, hash, publisher)
+  constructor(hash, publisher, stream, transaction)
   {
-    this.stream     = stream
-    this.hash       = hash
-    this.publisher  = publisher
+    this.hash         = hash
+    this.publisher    = publisher
+    this.stream       = stream
+    this.transaction  = transaction
   }
 }
 

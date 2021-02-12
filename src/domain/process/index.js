@@ -39,6 +39,8 @@ class Process
 
   persistProcessState(event)
   {
+    // TODO use transaction
+    // https://redis.io/topics/transactions
     const state = await this.redis.hash.read(event.domain, event.pid)
     this.deepmerge.merge(state, event.data)
     await this.redis.hash.write(event.domain, event.pid, state)

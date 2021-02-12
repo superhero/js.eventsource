@@ -19,7 +19,7 @@ class RedisServiceHash
         if(previousError)
         {
           const error = new Error('stream error occured')
-          error.code  = 'E_REDIS_HASH_WRITE_ERROR'
+          error.code  = 'E_REDIS_HASH_WRITE'
           error.chain = { previousError, group, stream, msg }
           reject(error)
         }
@@ -38,7 +38,7 @@ class RedisServiceHash
         if(previousError)
         {
           const error = new Error('stream error occured')
-          error.code  = 'E_REDIS_HASH_READ_ERROR'
+          error.code  = 'E_REDIS_HASH_READ'
           error.chain = { previousError, group, stream, msg }
           reject(error)
         }
