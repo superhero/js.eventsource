@@ -1,5 +1,7 @@
 const
+  redis               = require('redis'),
   Redis               = require('.'),
+  RedisKey            = require('./service/key'),
   RedisHash           = require('./service/hash'),
   RedisPublisher      = require('./service/publisher'),
   RedisStream         = require('./service/stream'),
@@ -18,15 +20,18 @@ class RedisLocator extends LocatorConstituent
   locate()
   {
     const
-      hash        = new RedisHash,
-      publisher   = new RedisPublisher,
-      stream      = new RedisStream,
-      transaction = new RedisTransaction
+      configuration = this.locator.locate('core/configuration'),
+      options       = configuration.find('infrastructure/redis/gateway'),
+      client        = redis.createClient(options),
+      key           = new RedisKey(client),
+      hash          = new RedisHash(client),
+      publisher     = new RedisPublisher(client),
+      stream        = new RedisStream(client),
+      factory       = this.locate.bind(this),
+      transaction   = new RedisTransaction(client, factory)
 
-    return new Redis(hash, publisher, stream, transaction)
+    return new Redis(client, key, hash, publisher, stream, transaction)
   }
 }
 
 module.exports = RedisLocator
-
-

@@ -11,7 +11,7 @@ class RedisSubscriber
 
   async bootstrap()
   {
-    for(channel of ['process-event-queued', 'process-state-persisted'])
+    for(channel of ['process-event-queued', 'process-state-persisted', 'process-state-queue-error'])
     {
       this.subscriber.subscribe(channel)
       await this.lazyloadConsumerGroup(channel)
@@ -21,13 +21,13 @@ class RedisSubscriber
     {
       try
       {
-        const dto = JSON.parse(message)
-
         switch(channel)
         {
           case 'process-event-queued':
           case 'process-state-persisted':
+          case 'process-state-queue-error':
           {
+            const dto = JSON.parse(message)
             this.eventbus.emit(channel, dto)
           }
         }
@@ -43,11 +43,7 @@ class RedisSubscriber
   {
     return new Promise((accept, reject) =>
     {
-      const 
-        stream  = 'stream-' + channel, 
-        group   = 'group-'  + channel
-
-      this.gateway.xgroup('CREATE', stream, group, '$', 'MKSTREAM', (error) =>
+      this.gateway.xgroup('CREATE', channel, channel, '$', 'MKSTREAM', (error) =>
       {
         if(error)
         {

@@ -14,9 +14,8 @@ class RedisServiceStream
     return new Promise((accept, reject) =>
     {
       const
-        event   = this.schema.compose('eventsource/schema/entity/process-event', msg),
         info    = this.mapToChannelInfo(channel),
-        entries = Object.entries(event),
+        entries = Object.entries(msg),
         dto     = []
   
       // TODO move to mapper
@@ -46,22 +45,18 @@ class RedisServiceStream
   {
     return new Promise((accept, reject) =>
     {
-      const info = this.mapToChannelInfo(channel)
-      this.gateway.xreadgroup('GROUP', info.group, 'consumer', 'STREAMS', info.stream, '>', async (previousError, result) =>
+      this.gateway.xreadgroup('GROUP', channel, 'consumer', 'STREAMS', channel, '>', async (previousError, result) =>
       {
         if(previousError)
         {
           const error = new Error('stream error occured')
           error.code  = 'E_REDIS_STREAM_READ_GATEWAY'
-          error.chain = { previousError, ...info }
+          error.chain = { previousError, channel }
           reject(error)
         }
         else if(result === null)
         {
-          const error = new Error('no messages to be consumed was found')
-          error.code  = 'E_REDIS_STREAM_READ_NULL'
-          error.chain = { ...info }
-          reject(error)
+          accept(result)
         }
         else
         {
@@ -83,36 +78,20 @@ class RedisServiceStream
 
           try
           {
-            const 
-              event   = this.schema.compose('eventsource/schema/entity/process-event', msg),
-              result  = await consumer(event)
-
-            this.gateway.xack(info.stream, info.group, id)
-            accept(result)
+            await consumer(msg)
+            this.gateway.xack(channel, channel, id)
+            accept(event)
           }
           catch(previousError)
           {
             const error = new Error('consumer failed')
             error.code  = 'E_REDIS_STREAM_READ_CONSUMER'
-            error.chain = { previousError, ...info, id, msg }
+            error.chain = { previousError, channel, id, msg }
             reject(error)
           }
         }
       })
     })
-  }
-
-  /**
-   * TODO move to mapper
-   * @param {string} channel 
-   */
-  mapToChannelInfo(channel)
-  {
-    const
-      group   = 'group-'  + channel,
-      stream  = 'stream-' + channel
-
-    return { group, stream }
   }
 }
 

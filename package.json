@@ -12,7 +12,7 @@
     "start": "node ./src/server/index.js"
   },
   "dependencies": {
-    "superhero": "2.1.7",
+    "superhero": "2.1.8",
     "@superhero/db": "0.2.0",
     "json-sql-builder2": "1.0.24",
     "mysql": "2.18.1",

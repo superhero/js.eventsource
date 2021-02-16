@@ -11,24 +11,19 @@ class Process
     this.console    = console
   }
 
-  async onProcessEventQueued(channel)
+  async onProcessEventQueued()
   {
     if(!this._processingEventQueue)
     {
       this._processingEventQueue = true
       try
       {
-        await this.redis.stream.read(channel, this.persistProcessState.bind(this, event))
-        
+        while(await this.redis.stream.read('process-event-queued', this.persistProcessState.bind(this)));
       }
       catch(error)
       {
-        switch(error.code)
-        {
-          case 'E_REDIS_STREAM_READ_GATEWAY':
-          case 'E_REDIS_STREAM_READ_NULL':
-          case 'E_REDIS_STREAM_READ_CONSUMER':
-        }
+        await this.redis.stream.write('process-state-queue-error', error)
+        await this.redis.publisher.publish('process-state-queue-error')
       }
       finally
       {
@@ -37,20 +32,47 @@ class Process
     }
   }
 
-  persistProcessState(event)
+  async persistProcessState(event)
   {
-    // TODO use transaction
-    // https://redis.io/topics/transactions
-    const state = await this.redis.hash.read(event.domain, event.pid)
-    this.deepmerge.merge(state, event.data)
-    await this.redis.hash.write(event.domain, event.pid, state)
-    const { domain, pid } = event
-    await this.redis.publisher.publish('process state updated', { domain, pid })
+    let committed, i = 0
+    do
+    {
+      const session = await this.redis.createSession()
+      try
+      {
+        const { domain, pid } = event
+        const psKey = `ps.${domain}.${pid}`
+        await session.transaction.watch(psKey)
+        await session.transaction.begin()
+        const state = await session.key.read(psKey) || {}
+        this.deepmerge.merge(state, event.data)
+        await session.key.write(psKey, state)
+        committed = await session.transaction.commit()
+      }
+      catch(error)
+      {
+        if(++i > 10)
+        {
+          throw error
+        }
+      }
+      finally
+      {
+        await session.quit()
+      }
+    }
+    while(!committed)
+    await this.redis.publisher.publish('process-state-persisted', { domain, pid })
   }
 
   onProcessStatePersisted()
   {
     this.console.color('green').log('process state persisted')
+  }
+
+  onProcessStateQueueError()
+  {
+    this.console.color('red').log('process state queue error')
   }
 }
 

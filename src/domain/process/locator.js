@@ -14,10 +14,11 @@ class QueueLocator extends LocatorConstituent
   locate()
   {
     const
-      redis   = this.locator.locate('infrastructure/redis'),
-      console = this.locator.locate('core/console')
+      redis     = this.locator.locate('infrastructure/redis'),
+      deepmerge = this.locator.locate('core/deepmerge'),
+      console   = this.locator.locate('core/console')
 
-    return new Queue(redis, console)
+    return new Queue(redis, deepmerge, console)
   }
 }
 
