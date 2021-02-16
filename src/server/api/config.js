@@ -1,5 +1,5 @@
 /**
- * @namespace Eventsource.Api
+ * @namespace Eventsource.Server.Api
  */
 module.exports =
 {

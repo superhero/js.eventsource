@@ -1,12 +1,13 @@
 /**
- * @memberof Eventsource.Domain
+ * @memberof Eventsource.Server.Domain
  * @extends {superhero/core/locator/constituent}
  */
 class Process
 {
-  constructor(redis, deepmerge, console)
+  constructor(redis, mapper, deepmerge, console)
   {
     this.redis      = redis
+    this.mapper     = mapper
     this.deepmerge  = deepmerge
     this.console    = console
   }
@@ -32,12 +33,15 @@ class Process
     }
   }
 
-  async persistProcessState(event)
+  async persistProcessState(msg)
   {
     let committed, i = 0
     do
     {
-      const session = await this.redis.createSession()
+      const
+        session = await this.redis.createSession(),
+        event   = this.mapper.toEvent(msg)
+
       try
       {
         const { domain, pid } = event

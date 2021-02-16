@@ -1,5 +1,5 @@
 /**
- * @memberof Eventsource.Api
+ * @memberof Eventsource.Server.Api
  */
 class RedisSubscriber
 {

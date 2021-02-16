@@ -4,7 +4,7 @@ const
   LocatorConstituent  = require('superhero/core/locator/constituent')
 
 /**
- * @memberof Eventsource.Api
+ * @memberof Eventsource.Server.Api
  * @extends {superhero/core/locator/constituent}
  */
 class RedisSubscriberLocator extends LocatorConstituent

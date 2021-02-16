@@ -1,5 +1,5 @@
 /**
- * @memberof Eventsource.Infrastructure
+ * @memberof Eventsource.Server.Infrastructure
  */
 class RedisServiceHash
 {
