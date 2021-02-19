@@ -9,9 +9,5 @@ module.exports =
     {
       'eventsource/client' : __dirname
     }
-  },
-  client:
-  {
-    eventsource : {}
   }
 }

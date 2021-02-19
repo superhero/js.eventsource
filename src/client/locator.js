@@ -1,6 +1,5 @@
 const
   EventsourceClient   = require('.'),
-  redis               = require('redis'),
   LocatorConstituent  = require('superhero/core/locator/constituent')
 
 /**
@@ -15,11 +14,11 @@ class EventsourceClientLocator extends LocatorConstituent
   locate()
   {
     const
-      configuration = this.locator.locate('core/configuration'),
-      options       = configuration.find('client/eventsource'),
-      client        = redis.createClient(options)
+      redis     = this.locator.locate('redis/client'),
+      publisher = redis.createSession(),
+      mapper    = this.locator.locate('eventsource/mapper')
 
-    return new EventsourceClient(client)
+    return new EventsourceClient(mapper, redis, publisher)
   }
 }
 

@@ -5,8 +5,10 @@ const
 
 core.add('api')
 core.add('domain')
-core.add('infrastructure')
+core.add('client/redis', '@superhero/core.redis/src/client')
+core.add('mapper', __dirname + '/../mapper')
 core.add('schema', __dirname + '/../schema')
+core.add('infrastructure')
 
 core.load()
 

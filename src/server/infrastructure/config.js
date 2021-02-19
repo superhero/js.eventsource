@@ -3,14 +3,7 @@
  */
 module.exports =
 {
-  core:
-  {
-    locator:
-    {
-      'infrastructure/*' : __dirname + '/*'
-    }
-  },
-  infrastructure:
+  client:
   {
     redis:
     {

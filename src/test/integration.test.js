@@ -1,3 +1,7 @@
+const
+  expect  = require('chai').expect,
+  context = require('mochawesome/addContext')
+
 describe('Eventsource test suit', () =>
 {
   let core
@@ -11,9 +15,12 @@ describe('Eventsource test suit', () =>
     core = coreFactory.create()
 
     core.add('api')
-    core.add('infrastructure')
-    core.add('schema', __dirname + '/../schema')
+    core.add('domain')
+    core.add('client/redis', '@superhero/core.redis/src/client')
     core.add('client', __dirname + '/../client')
+    core.add('mapper', __dirname + '/../mapper')
+    core.add('schema', __dirname + '/../schema')
+    core.add('infrastructure')
     core.add('test', __dirname)
 
     core.load()
@@ -21,34 +28,36 @@ describe('Eventsource test suit', () =>
     core.locate('core/bootstrap').bootstrap().then(done)
   })
 
-  after(() =>
+  after(async () =>
   {
-    core.locate('infrastructure/redis').gateway.close()
-    core.locate('infrastructure/mysql').gateway.close()
-    core.locate('client/eventsource').redis.gateway.close()
+    await core.locate('api/redis-subscriber').quit(),
+    await core.locate('domain/process').quit(),
+    await core.locate('eventsource/client').quit(),
+    await core.locate('redis/client').quit()
   })
 
   const
-    ppid      = Date.now().toString(32),
-    pid       = Date.now().toString(36),
-    eventname = 'test-event',
-    eventdata = { test:'data' }
+    ppid    = Date.now().toString(32),
+    pid     = Date.now().toString(36),
+    domain  = 'test-domain',
+    name    = 'test-event',
+    data    = { test:'data' }
 
-  it('can write an event to the eventsource system', async () =>
+  it('can write to, and read from, the eventsource system', function (done)
   {
-    const 
-      client = core.locate('client/eventsource'),
-      result = await client.write(ppid, pid, eventname, eventdata)
+    const
+      client    = core.locate('eventsource/client'),
+      session   = core.locate('redis/client').createSession()
 
-    core.locate('core/console').log(result)
-  })
+    session.pubsub.subscribe('process-state-persisted', async (dto) =>
+    {
+      const processState = await client.read(domain, pid)
+      context(this, { title:'context', value:{ domain, ppid, pid, name, data, dto, processState }})
+      expect(processState).to.deep.equal(data)
+      session.quit()
+      done()
+    })
 
-  it('can read an event from the eventsource system', async () =>
-  {
-    const 
-      client = core.locate('client/eventsource'),
-      result = await client.readByPid(pid)
-
-    core.locate('core/console').log(result)
+    client.write({ domain, ppid, pid, name, data })
   })
 })

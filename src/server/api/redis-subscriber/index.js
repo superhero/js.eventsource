@@ -3,70 +3,26 @@
  */
 class RedisSubscriber
 {
-  constructor(client, eventbus)
+  constructor(config, redis, subscriber, eventbus)
   {
-    this.client   = client
-    this.eventbus = eventbus
+    this.config           = config
+    this.redis            = redis
+    this.redisSubscriber  = subscriber
+    this.eventbus         = eventbus
   }
 
   async bootstrap()
   {
-    for(channel of ['process-event-queued', 'process-state-persisted', 'process-state-queue-error'])
+    for(const channel of this.config.channels)
     {
-      this.subscriber.subscribe(channel)
-      await this.lazyloadConsumerGroup(channel)
+      this.redisSubscriber.pubsub.subscribe(channel, (dto) => this.eventbus.emit(channel, dto))
+      await this.redis.stream.lazyloadConsumerGroup(channel, channel)
     }
-
-    this.client.on('message', async (channel, message) =>
-    {
-      try
-      {
-        switch(channel)
-        {
-          case 'process-event-queued':
-          case 'process-state-persisted':
-          case 'process-state-queue-error':
-          {
-            const dto = JSON.parse(message)
-            this.eventbus.emit(channel, dto)
-          }
-        }
-      }
-      catch(error)
-      {
-        this.onError(error)
-      }
-    })
   }
 
-  lazyloadConsumerGroup(channel)
+  quit()
   {
-    return new Promise((accept, reject) =>
-    {
-      this.gateway.xgroup('CREATE', channel, channel, '$', 'MKSTREAM', (error) =>
-      {
-        if(error)
-        {
-          switch(error.code)
-          {
-            case 'BUSYGROUP': break
-            default: throw reject(error)
-          }
-        }
-        accept()
-      })
-    })
-  }
-
-  onError(error)
-  {
-    throw error
-  }
-
-  close()
-  {
-    this.client.unsubscribe()
-    this.client.quit()
+    return this.redisSubscriber.quit()
   }
 }
 

@@ -1,6 +1,5 @@
 const
   Process             = require('.'),
-  ProcessMapper       = require('./mapper'),
   LocatorConstituent  = require('superhero/core/locator/constituent')
 
 /**
@@ -15,13 +14,13 @@ class ProcessLocator extends LocatorConstituent
   locate()
   {
     const
-      redis     = this.locator.locate('infrastructure/redis'),
+      redis     = this.locator.locate('redis/client'),
+      publisher = redis.createSession(),
       deepmerge = this.locator.locate('core/deepmerge'),
       console   = this.locator.locate('core/console'),
-      schema    = this.locator.locate('core/schema/composer'),
-      mapper    = new ProcessMapper(schema)
+      mapper    = this.locator.locate('eventsource/mapper')
 
-    return new Process(redis, mapper, deepmerge, console)
+    return new Process(redis, publisher, mapper, deepmerge, console)
   }
 }
 

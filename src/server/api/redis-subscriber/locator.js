@@ -1,6 +1,5 @@
 const
   RedisSubscriber     = require('.'),
-  redis               = require('redis'),
   LocatorConstituent  = require('superhero/core/locator/constituent')
 
 /**
@@ -15,12 +14,13 @@ class RedisSubscriberLocator extends LocatorConstituent
   locate()
   {
     const
-      configuration = this.locator.locate('core/configuration'),
-      options       = configuration.find('infrastructure/redis/gateway'),
-      client        = redis.createClient(options),
-      eventbus      = this.locator.locate('core/eventbus')
+      redis           = this.locator.locate('redis/client'),
+      subscriber      = redis.createSession(),
+      eventbus        = this.locator.locate('core/eventbus'),
+      configuration   = this.locator.locate('core/configuration'),
+      config          = configuration.find('api/redis-subscriber')
 
-    return new RedisSubscriber(client, eventbus)
+    return new RedisSubscriber(config, redis, subscriber, eventbus)
   }
 }
 

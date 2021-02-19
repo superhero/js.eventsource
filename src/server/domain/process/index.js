@@ -4,27 +4,30 @@
  */
 class Process
 {
-  constructor(redis, mapper, deepmerge, console)
+  constructor(redis, publisher, mapper, deepmerge, console)
   {
-    this.redis      = redis
-    this.mapper     = mapper
-    this.deepmerge  = deepmerge
-    this.console    = console
+    this.redis          = redis
+    this.redisPublisher = publisher
+    this.mapper         = mapper
+    this.deepmerge      = deepmerge
+    this.console        = console
   }
 
-  async onProcessEventQueued()
+  async onProcessStateQueued()
   {
     if(!this._processingEventQueue)
     {
       this._processingEventQueue = true
       try
       {
-        while(await this.redis.stream.read('process-event-queued', this.persistProcessState.bind(this)));
+        const channel = 'process-state-queued'
+        while(await this.redis.stream.read(channel, channel, this.persistProcessState.bind(this)));
       }
       catch(error)
       {
-        await this.redis.stream.write('process-state-queue-error', error)
-        await this.redis.publisher.publish('process-state-queue-error')
+        const channel = 'process-state-queue-error'
+        await this.redis.stream.write(channel, error)
+        await this.redisPublisher.pubsub.publish(channel)
       }
       finally
       {
@@ -33,25 +36,31 @@ class Process
     }
   }
 
-  async persistProcessState(msg)
+  /**
+   * @param {Eventsource.Schema.EntityProcessState} event 
+   */
+  async persistProcessState(event)
   {
+    const processState = this.mapper.toEntityProcessState(event)
     let committed, i = 0
     do
     {
-      const
-        session = await this.redis.createSession(),
-        event   = this.mapper.toEvent(msg)
+      const session = await this.redis.createSession()
 
       try
       {
-        const { domain, pid } = event
-        const psKey = `ps.${domain}.${pid}`
+        const { domain, pid, data } = processState
+        const psKey = this.mapper.toProcessStateKey(domain, pid)
         await session.transaction.watch(psKey)
         await session.transaction.begin()
-        const state = await session.key.read(psKey) || {}
-        this.deepmerge.merge(state, event.data)
+        const state = await this.redis.key.read(psKey) || {}
+        this.deepmerge.merge(state, data)
         await session.key.write(psKey, state)
+        const persitedChannel = 'process-state-persisted'
+        await session.stream.write(persitedChannel, processState)
+        const processStatePersisted = this.mapper.toEventProcessStatePersisted(processState)
         committed = await session.transaction.commit()
+        this.redisPublisher.pubsub.publish(persitedChannel, processStatePersisted)
       }
       catch(error)
       {
@@ -66,17 +75,29 @@ class Process
       }
     }
     while(!committed)
-    await this.redis.publisher.publish('process-state-persisted', { domain, pid })
   }
 
-  onProcessStatePersisted()
+  async onProcessStatePersisted()
   {
-    this.console.color('green').log('process state persisted')
+    const 
+      channel       = 'process-state-persisted',
+      processState  = await this.redis.stream.read(channel, channel)
+    
+    processState && this.console.color('green').log('process state persisted', processState)
   }
 
-  onProcessStateQueueError()
+  async onProcessStateQueueError()
   {
-    this.console.color('red').log('process state queue error')
+    const 
+      channel = 'process-state-queue-error',
+      error   = await this.redis.stream.read(channel, channel)
+
+    error && this.console.error('process state queue error', error)
+  }
+
+  quit()
+  {
+    return this.redisPublisher.quit()
   }
 }
 

@@ -13,7 +13,7 @@ module.exports =
     {
       'observers' : 
       {
-        'process-event-queued'      : { 'domain/process':true }, 
+        'process-state-queued'      : { 'domain/process':true }, 
         'process-state-persisted'   : { 'domain/process':true }, 
         'process-state-queue-error' : { 'domain/process':true }
       }

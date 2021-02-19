@@ -1,12 +1,18 @@
 /**
  * @memberof Eventsource.Schema
- * @typedef {Object} EntityProcessEvent
+ * @typedef {Object} ValueProcessStateMeta
  */
 const schema =
 {
-  'timestamp':
+  'domain':
   {
-    'type'      : 'timestamp',
+    'type'      : 'string',
+    'not-empty' : true
+  },
+  'pid':
+  {
+    'type'      : 'string',
+    'not-empty' : true
   },
   'ppid':
   {
@@ -14,24 +20,10 @@ const schema =
     'not-empty' : true,
     'optional'  : true
   },
-  'pid':
-  {
-    'type'      : 'string',
-    'not-empty' : true
-  },
-  'domain':
-  {
-    'type'      : 'string',
-    'not-empty' : true
-  },
   'name':
   {
     'type'      : 'string',
     'not-empty' : true
-  },
-  'data':
-  {
-    'type'      : 'json'
   }
 }
 

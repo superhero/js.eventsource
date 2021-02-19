@@ -9,7 +9,9 @@ module.exports =
     {
       composer:
       {
-        'eventsource/shema/entity/*' : __dirname + '/entity/*'
+        'eventsource/schema/entity/*'  : __dirname + '/entity/*',
+        'eventsource/schema/event/*'   : __dirname + '/event/*',
+        'eventsource/schema/value/*'   : __dirname + '/value/*',
       }
     }
   }

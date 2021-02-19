@@ -13,5 +13,17 @@ module.exports =
     {
       'api/*' : __dirname + '/*'
     }
+  },
+  api:
+  {
+    'redis-subscriber':
+    {
+      channels: 
+      [
+        'process-state-queued', 
+        'process-state-persisted', 
+        'process-state-queue-error'
+      ]
+    }
   }
 }
