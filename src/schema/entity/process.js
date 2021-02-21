@@ -1,12 +1,12 @@
 /**
  * @memberof Eventsource.Schema
- * @typedef {Object} EntityProcessState
+ * @typedef {Object} EntityProcess
  */
 const schema =
 {
   '@meta': 
   {
-    'extends' : 'eventsource/schema/value/process-state-meta'
+    'extends' : 'eventsource/schema/value/process-meta'
   },
   'data':
   {

@@ -16,11 +16,12 @@ class ProcessLocator extends LocatorConstituent
     const
       redis     = this.locator.locate('redis/client'),
       publisher = redis.createSession(),
+      mapper    = this.locator.locate('eventsource/mapper'),
       deepmerge = this.locator.locate('core/deepmerge'),
-      console   = this.locator.locate('core/console'),
-      mapper    = this.locator.locate('eventsource/mapper')
+      eventbus  = this.locator.locate('core/eventbus'),
+      console   = this.locator.locate('core/console')
 
-    return new Process(redis, publisher, mapper, deepmerge, console)
+    return new Process(redis, publisher, mapper, deepmerge, eventbus, console)
   }
 }
 

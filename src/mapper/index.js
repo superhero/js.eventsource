@@ -8,19 +8,29 @@ class EventsourceMapper
     this.schema = schema
   }
 
-  toEntityProcessState(msg)
+  toEntityProcess(msg)
   {
-    return this.schema.compose('eventsource/schema/entity/process-state', msg)
+    return this.schema.compose('eventsource/schema/entity/process', msg)
   }
 
-  toEventProcessStatePersisted(msg)
+  toEventProcessPersisted(msg)
   {
-    return this.schema.compose('eventsource/schema/event/process-state-persisted', msg)
+    return this.schema.compose('eventsource/schema/event/process-persisted', msg)
   }
 
   toProcessStateKey(domain, pid)
   {
     return `ps.${domain}.${pid}`
+  }
+
+  toProcessEventsKey(domain, pid)
+  {
+    return `pe.${domain}.${pid}`
+  }
+
+  toProcessPersistedChannel(domain, name)
+  {
+    return `process-${domain}-${name}-persisted`
   }
 }
 

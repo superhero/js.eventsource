@@ -14,16 +14,14 @@ describe('Eventsource test suit', () =>
 
     core = coreFactory.create()
 
-    core.add('api')
-    core.add('domain')
     core.add('client/redis', '@superhero/core.redis/src/client')
+    core.add('server', __dirname + '/../server')
     core.add('client', __dirname + '/../client')
     core.add('mapper', __dirname + '/../mapper')
     core.add('schema', __dirname + '/../schema')
-    core.add('infrastructure')
     core.add('test', __dirname)
 
-    core.load()
+    core.load(true)
 
     core.locate('core/bootstrap').bootstrap().then(done)
   })
@@ -34,6 +32,7 @@ describe('Eventsource test suit', () =>
     await core.locate('domain/process').quit(),
     await core.locate('eventsource/client').quit(),
     await core.locate('redis/client').quit()
+    core.locate('core/eventbus').removeAllListeners()
   })
 
   const
@@ -41,17 +40,19 @@ describe('Eventsource test suit', () =>
     pid     = Date.now().toString(36),
     domain  = 'test-domain',
     name    = 'test-event',
-    data    = { test:'data' }
+    data    = { test:pid }
 
   it('can write to, and read from, the eventsource system', function (done)
   {
     const
       client    = core.locate('eventsource/client'),
-      session   = core.locate('redis/client').createSession()
+      mapper    = core.locate('eventsource/mapper'),
+      session   = core.locate('redis/client').createSession(),
+      channel   = mapper.toProcessPersistedChannel(domain, name)
 
-    session.pubsub.subscribe('process-state-persisted', async (dto) =>
+    session.pubsub.subscribe(channel, async (dto) =>
     {
-      const processState = await client.read(domain, pid)
+      const processState = await client.readState(domain, pid)
       context(this, { title:'context', value:{ domain, ppid, pid, name, data, dto, processState }})
       expect(processState).to.deep.equal(data)
       session.quit()

@@ -1,6 +1,6 @@
 /**
  * @memberof Eventsource.Schema
- * @typedef {Object} ValueProcessStateMeta
+ * @typedef {Object} ValueProcessMeta
  */
 const schema =
 {
