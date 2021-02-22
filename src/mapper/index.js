@@ -3,9 +3,10 @@
  */
 class EventsourceMapper
 {
-  constructor(schema)
+  constructor(schema, string)
   {
     this.schema = schema
+    this.string = string
   }
 
   toEntityProcess(msg)
@@ -20,17 +21,30 @@ class EventsourceMapper
 
   toProcessStateKey(domain, pid)
   {
+    domain = this.string.composeSeperatedLowerCase(domain)
     return `ps.${domain}.${pid}`
   }
 
   toProcessEventsKey(domain, pid)
   {
+    domain = this.string.composeSeperatedLowerCase(domain)
     return `pe.${domain}.${pid}`
   }
 
   toProcessPersistedChannel(domain, name)
   {
+    domain = this.string.composeSeperatedLowerCase(domain)
+    name   = this.string.composeSeperatedLowerCase(name)
+
     return `process-${domain}-${name}-persisted`
+  }
+
+  toProcessConsumerErrorChannel(domain, name)
+  {
+    domain = this.string.composeSeperatedLowerCase(domain)
+    name   = this.string.composeSeperatedLowerCase(name)
+
+    return `process-${domain}-${name}-error`
   }
 }
 

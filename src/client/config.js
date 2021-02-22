@@ -8,6 +8,13 @@ module.exports =
     locator:
     {
       'eventsource/client' : __dirname
+    },
+    eventbus:
+    {
+      'observers' : 
+      {
+        'process-consumer-error' : { 'eventsource/client':true }
+      }
     }
   }
 }

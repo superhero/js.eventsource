@@ -13,8 +13,11 @@ class EventsourceMapperLocator extends LocatorConstituent
    */
   locate()
   {
-    const schema = this.locator.locate('core/schema/composer')
-    return new EventsourceMapper(schema)
+    const 
+      schema = this.locator.locate('core/schema/composer'),
+      string = this.locator.locate('core/string')
+
+    return new EventsourceMapper(schema, string)
   }
 }
 

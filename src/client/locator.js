@@ -14,11 +14,13 @@ class EventsourceClientLocator extends LocatorConstituent
   locate()
   {
     const
-      redis     = this.locator.locate('redis/client'),
-      publisher = redis.createSession(),
-      mapper    = this.locator.locate('eventsource/mapper')
+      redis       = this.locator.locate('redis/client'),
+      publisher   = redis.createSession(),
+      subscriber  = redis.createSession(),
+      mapper      = this.locator.locate('eventsource/mapper'),
+      eventbus    = this.locator.locate('core/eventbus')
 
-    return new EventsourceClient(mapper, redis, publisher)
+    return new EventsourceClient(mapper, redis, publisher, subscriber, eventbus)
   }
 }
 

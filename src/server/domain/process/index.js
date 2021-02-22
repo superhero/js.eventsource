@@ -64,7 +64,7 @@ class Process
         const processPersisted = this.mapper.toEventProcessPersisted(process)
         await session.stream.write(channel, processPersisted)
         committed = await session.transaction.commit()
-        committed && this.redisPublisher.pubsub.publish(channel, processPersisted)
+        committed && this.redisPublisher.pubsub.publish(channel)
       }
       catch(previousError)
       {
