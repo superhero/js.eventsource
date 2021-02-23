@@ -21,8 +21,8 @@ class Process
       this._processingEventQueue = true
       try
       {
-        const channel = 'process-event-queued'
-        while(await this.redis.stream.read(channel, channel, this.persistProcess.bind(this)));
+        const channel = this.mapper.toProcessEventQueuedChannel()
+        while(await this.redis.stream.readGroup(channel, channel, this.persistProcess.bind(this)));
       }
       catch(error)
       {
@@ -51,15 +51,18 @@ class Process
       try
       {
         const { domain, pid, name, data } = process
-        const psKey = this.mapper.toProcessStateKey(domain, pid)
-        await session.transaction.watch(psKey)
         const peKey = this.mapper.toProcessEventsKey(domain, pid)
         await session.transaction.watch(peKey)
+        const psKey = this.mapper.toProcessStateKey(domain, pid)
+        await session.transaction.watch(psKey)
+        const phKey = this.mapper.toProcessHistoryKey(domain, pid)
+        await session.transaction.watch(phKey)
         await session.transaction.begin()
+        await session.hash.write(peKey, name, id)
+        await session.list.rpush(phKey, id)
         const state = await this.redis.key.read(psKey) || {}
         this.deepmerge.merge(state, data)
         await session.key.write(psKey, state)
-        await session.hash.write(peKey, name, id)
         const channel = this.mapper.toProcessPersistedChannel(domain, name)
         const processPersisted = this.mapper.toEventProcessPersisted(process)
         await session.stream.write(channel, processPersisted)
@@ -70,7 +73,7 @@ class Process
       {
         if(++i > 10)
         {
-          throw error
+          throw previousError
         }
       }
       finally
@@ -83,7 +86,7 @@ class Process
 
   async onProcessError(error)
   {
-    const channel = 'process-error-queued'
+    const channel = this.mapper.toProcessErrorQueuedChannel()
     await this.redis.stream.write(channel, error)
     await this.redisPublisher.pubsub.publish(channel)
   }
@@ -91,8 +94,8 @@ class Process
   async onProcessErrorQueued()
   {
     const 
-      channel = 'process-error-queued',
-      error   = await this.redis.stream.read(channel, channel)
+      channel = this.mapper.toProcessErrorQueuedChannel(),
+      error   = await this.redis.stream.readGroup(channel, channel)
 
     error && this.console.error(channel, error)
   }

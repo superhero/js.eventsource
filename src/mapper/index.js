@@ -19,6 +19,16 @@ class EventsourceMapper
     return this.schema.compose('eventsource/schema/event/process-persisted', msg)
   }
 
+  toProcessEventQueuedChannel()
+  {
+    return 'process-event-queued'
+  }
+
+  toProcessErrorQueuedChannel()
+  {
+    return 'process-error-queued'
+  }
+
   toProcessStateKey(domain, pid)
   {
     domain = this.string.composeSeperatedLowerCase(domain)
@@ -29,6 +39,12 @@ class EventsourceMapper
   {
     domain = this.string.composeSeperatedLowerCase(domain)
     return `pe.${domain}.${pid}`
+  }
+
+  toProcessHistoryKey(domain, pid)
+  {
+    domain = this.string.composeSeperatedLowerCase(domain)
+    return `ph.${domain}.${pid}`
   }
 
   toProcessPersistedChannel(domain, name)
