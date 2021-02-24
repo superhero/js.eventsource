@@ -26,13 +26,15 @@ describe('Eventsource test suit', () =>
     core.locate('core/bootstrap').bootstrap().then(done)
   })
 
-  after(async () =>
+  after(() =>
   {
-    await core.locate('api/redis-subscriber').quit(),
-    await core.locate('domain/process').quit(),
-    await core.locate('eventsource/client').quit(),
-    await core.locate('redis/client').quit()
-    core.locate('core/eventbus').removeAllListeners()
+    setTimeout(async() =>
+    {
+      await core.locate('api/redis-subscriber').quit(),
+      await core.locate('domain/process').quit(),
+      await core.locate('eventsource/client').quit(),
+      await core.locate('redis/client').quit()
+    },2e3)
   })
 
   const
@@ -42,23 +44,66 @@ describe('Eventsource test suit', () =>
     name    = 'test-event',
     data    = { test:pid }
 
-  it('can write to, and read from, the eventsource system', function (done)
+  it('can write to the eventsource system and observe when a domain event was persisted', function (done)
   {
-    const
-      client    = core.locate('eventsource/client'),
-      mapper    = core.locate('eventsource/mapper'),
-      session   = core.locate('redis/client').createSession(),
-      channel   = mapper.toProcessPersistedChannel(domain, name)
+    const client = core.locate('eventsource/client')
 
-    session.pubsub.subscribe(channel, async (dto) =>
+    client.on(domain, name, async (dto) =>
     {
       const processState = await client.readState(domain, pid)
       context(this, { title:'context', value:{ domain, ppid, pid, name, data, dto, processState }})
       expect(processState).to.deep.equal(data)
-      session.quit()
       done()
-    })
+    }).then(() => client.write({ domain, ppid, pid, name, data }))
+  })
 
-    client.write({ domain, ppid, pid, name, data })
+  it('can read the eventlog', async function ()
+  {
+    const
+      client    = core.locate('eventsource/client'),
+      eventlog  = await client.readEventlog(domain, pid)
+
+    context(this, { title:'context', value:{ domain, pid, data, eventlog }})
+    expect(eventlog).to.deep.equal([{ domain, ppid, pid, name, data }])
+  })
+
+  it('can read a process event', async function ()
+  {
+    const
+      client    = core.locate('eventsource/client'),
+      eventData = await client.readEvent(domain, pid, name)
+
+    context(this, { title:'context', value:{ domain, pid, name, data, eventData }})
+    expect(eventData).to.deep.equal(data)
+  })
+
+  it('can read if a process has a persisted event', async function ()
+  {
+    const
+      client    = core.locate('eventsource/client'),
+      hasEvent  = await client.hasEvent(domain, pid, name)
+
+    context(this, { title:'context', value:{ domain, pid, name, data, hasEvent }})
+    expect(hasEvent).to.equal(true)
+  })
+
+  it('can lazyload an existing process event', async function ()
+  {
+    const
+      client    = core.locate('eventsource/client'),
+      eventData = await client.lazyload(domain, pid, name, async () => 123)
+
+    context(this, { title:'context', value:{ domain, pid, name, data, eventData }})
+    expect(eventData).to.deep.equal(data)
+  })
+
+  it('can lazyload a none existing process event', async function ()
+  {
+    const
+      client    = core.locate('eventsource/client'),
+      eventData = await client.lazyload(domain, pid, 'foobar', async () => 123)
+
+    context(this, { title:'context', value:{ domain, pid, name, data, eventData }})
+    expect(eventData).to.equal(123)
   })
 })

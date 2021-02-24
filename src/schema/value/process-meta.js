@@ -18,7 +18,8 @@ const schema =
   {
     'type'      : 'string',
     'not-empty' : true,
-    'optional'  : true
+    'nullable'  : true,
+    'default'   : true
   },
   'name':
   {

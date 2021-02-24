@@ -2,8 +2,6 @@
 
 This project has both a server and a client solution.
 
-> This project is used by me in some projects I have in production. I did not published this with the intent of others to use it. If you are looking at this code with the interest of working with it, throw me a line on github and tell me if there is any documentation you may require.
-
 ## Install
 
 `npm install superhero`
@@ -19,14 +17,14 @@ This project has both a server and a client solution.
 }
 ```
 
-## Examples
+## Example - Client
 
 Example to use on the client side:
 
 ```js
 const
-eventsourceFactory  = require('@superhero/eventsource'),
-eventsourceClient   = eventsourceFactory.create({ host:'127.0.0.1', port:'6379' })
+  eventsourceFactory  = require('@superhero/eventsource'),
+  eventsourceClient   = eventsourceFactory.create({ host:'127.0.0.1', port:'6379' })
 
 // persisting
 {
