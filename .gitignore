@@ -1,6 +1,5 @@
 .DS_Store
 .vscode
-docs/generated
 npm-debug.log
 node_modules
 package-lock.json

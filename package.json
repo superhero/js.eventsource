@@ -6,8 +6,8 @@
   "license": "MIT",
   "main": "index.js",
   "scripts": {
-    "docs-coverage": "nyc mocha && nyc report --reporter=html --report-dir=./docs/generated/coverage",
-    "docs-tests": "mocha --reporter mochawesome --reporter-options reportDir=docs/generated/test,reportFilename=index,showHooks=always",
+    "docs-coverage": "nyc mocha && nyc report --reporter=html --report-dir=./doc/test-coverage",
+    "docs-tests": "mocha --reporter mochawesome --reporter-options reportDir=doc/test-suit,reportFilename=index,showHooks=always",
     "test": "mocha",
     "start": "node ./src/server/index.js"
   },
