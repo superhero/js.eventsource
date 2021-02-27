@@ -238,8 +238,8 @@ class EventsourceClient
 
   async quit()
   {
-    await this.redisPublisher.quit()
-    await this.redisSubscriber.quit()
+    await this.redisPublisher.connection.quit()
+    await this.redisSubscriber.connection.quit()
   }
 }
 

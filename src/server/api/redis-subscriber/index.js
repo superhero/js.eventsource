@@ -22,7 +22,7 @@ class RedisSubscriber
 
   quit()
   {
-    return this.redisSubscriber.quit()
+    return this.redisSubscriber.connection.quit()
   }
 }
 

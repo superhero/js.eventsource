@@ -78,7 +78,7 @@ class Process
       }
       finally
       {
-        await session.quit()
+        await session.connection.quit()
       }
     }
     while(!committed)
@@ -102,7 +102,7 @@ class Process
 
   quit()
   {
-    return this.redisPublisher.quit()
+    return this.redisPublisher.connection.quit()
   }
 }
 
