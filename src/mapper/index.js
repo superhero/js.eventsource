@@ -9,6 +9,11 @@ class EventsourceMapper
     this.string = string
   }
 
+  toProcessId()
+  {
+    return Date.now().toString(36) + '.' + Math.random().toString(36)
+  }
+
   toEntityProcess(msg)
   {
     return this.schema.compose('eventsource/schema/entity/process', msg)

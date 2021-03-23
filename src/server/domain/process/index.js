@@ -63,15 +63,15 @@ class Process
         const state = await this.redis.key.read(psKey) || {}
         this.deepmerge.merge(state, data)
         await session.key.write(psKey, state)
-        const channel = this.mapper.toProcessPersistedChannel(domain, name)
-        const processPersisted = this.mapper.toEventProcessPersisted(process)
-        await session.stream.write(channel, processPersisted)
+        const processPersistedChannel = this.mapper.toProcessPersistedChannel(domain, name)
+        const processPersistedEvent   = this.mapper.toEventProcessPersisted(process)
+        await session.stream.write(processPersistedChannel, processPersistedEvent)
         committed = await session.transaction.commit()
-        committed && this.redisPublisher.pubsub.publish(channel)
+        committed && this.redisPublisher.pubsub.publish(processPersistedChannel, { pid, name, id })
       }
       catch(previousError)
       {
-        if(++i > 10)
+        if(i > 10)
         {
           throw previousError
         }
@@ -81,7 +81,7 @@ class Process
         await session.connection.quit()
       }
     }
-    while(!committed)
+    while(!committed && ++i < 10)
   }
 
   async onProcessError(error)

@@ -164,16 +164,19 @@ class EventsourceClient
 
     let data
 
-    try
+    if(actor)
     {
-      data = await actor()
-    }
-    catch(previousError)
-    {
-      const error = new Error('could not lazyload from the supplied actor')
-      error.code  = 'E_EVENTSOURCE_CLIENT_LAZYLOAD'
-      error.chain = { previousError, domain, pid, name }
-      throw error
+      try
+      {
+        data = await actor()
+      }
+      catch(previousError)
+      {
+        const error = new Error('could not lazyload from the supplied actor')
+        error.code  = 'E_EVENTSOURCE_CLIENT_LAZYLOAD'
+        error.chain = { previousError, domain, pid, name }
+        throw error
+      }
     }
 
     try
