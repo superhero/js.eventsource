@@ -11,7 +11,7 @@ class EventsourceMapper
 
   toProcessId()
   {
-    return Date.now().toString(36) + '.' + Math.random().toString(36)
+    return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2)
   }
 
   toEntityProcess(msg)
@@ -27,19 +27,26 @@ class EventsourceMapper
   toProcessStateKey(domain, pid)
   {
     domain = this.string.composeSeperatedLowerCase(domain)
-    return `ps.${domain}.${pid}`
+    return `ps:${domain}:${pid}`
   }
 
   toProcessEventsKey(domain, pid)
   {
     domain = this.string.composeSeperatedLowerCase(domain)
-    return `pe.${domain}.${pid}`
+    return `pe:${domain}:${pid}`
   }
 
   toProcessHistoryKey(domain, pid)
   {
     domain = this.string.composeSeperatedLowerCase(domain)
-    return `ph.${domain}.${pid}`
+    return `ph:${domain}:${pid}`
+  }
+
+  toEventIndexKey(domain, name)
+  {
+    domain = this.string.composeSeperatedLowerCase(domain)
+    name   = this.string.composeSeperatedLowerCase(name)
+    return `ei:${domain}:${name}`
   }
 
   toProcessEventQueuedChannel()

@@ -57,9 +57,12 @@ class Process
         await session.transaction.watch(psKey)
         const phKey = this.mapper.toProcessHistoryKey(domain, pid)
         await session.transaction.watch(phKey)
+        const eiKey = this.mapper.toEventIndexKey(domain, name)
+        await session.transaction.watch(eiKey)
         await session.transaction.begin()
         await session.hash.write(peKey, name, id)
         await session.list.rpush(phKey, id)
+        await session.list.rpush(eiKey, pid)
         const state = await this.redis.key.read(psKey) || {}
         this.deepmerge.merge(state, data)
         await session.key.write(psKey, state)

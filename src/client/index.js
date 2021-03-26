@@ -113,6 +113,52 @@ class EventsourceClient
   }
 
   /**
+   * @param {string} domain
+   * @param {string} name
+   */
+  async readEventIndex(domain, name)
+  {
+    try
+    {
+      const 
+        eiKey   = this.mapper.toEventIndexKey(domain, name),
+        pidList = await this.redis.list.range(eiKey, 0, 0)
+
+      return pidList
+    }
+    catch(previousError)
+    {
+      const error = new Error('problem when reading the event name index from the eventsource')
+      error.code  = 'E_EVENTSOURCE_CLIENT_READ_EVENT_NAME_INDEX'
+      error.chain = { previousError, domain, name }
+      throw error
+    }
+  }
+
+  /**
+   * @param {string} domain
+   * @param {string} name
+   */
+  async readEventIndexLength(domain, name)
+  {
+    try
+    {
+      const 
+        eiKey   = this.mapper.toEventIndexKey(domain, name),
+        length  = await this.redis.list.length(eiKey)
+
+      return length
+    }
+    catch(previousError)
+    {
+      const error = new Error('problem when reading the event name index length from the eventsource')
+      error.code  = 'E_EVENTSOURCE_CLIENT_READ_EVENT_NAME_INDEX_LENGTH'
+      error.chain = { previousError, domain, name }
+      throw error
+    }
+  }
+
+  /**
    * 
    * @param {string} domain 
    * @param {string} pid 
