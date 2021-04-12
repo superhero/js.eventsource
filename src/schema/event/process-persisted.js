@@ -6,13 +6,7 @@ const schema =
 {
   '@meta': 
   {
-    'extends' : 'eventsource/schema/value/process-meta',
-    'exclude' : 
-    [
-      'ppid',
-      'name',
-      'domain'
-    ]
+    'extends' : 'eventsource/schema/entity/process'
   }
 }
 

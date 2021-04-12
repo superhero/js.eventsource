@@ -71,6 +71,8 @@ class Process
         await session.stream.write(processPersistedChannel, processPersistedEvent)
         committed = await session.transaction.commit()
         committed && this.redisPublisher.pubsub.publish(processPersistedChannel, { pid, name, id })
+
+        this.console.log(`${committed ? '✔' : '✗'} ${domain}/${name}`)
       }
       catch(previousError)
       {
