@@ -10,7 +10,8 @@ const schema =
   },
   'data':
   {
-    'type'    : 'json'
+    'type'    : 'json',
+    'default' : {}
   }
 }
 
