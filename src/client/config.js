@@ -13,7 +13,8 @@ module.exports =
     {
       'observers' : 
       {
-        'process-consumer-error' : { 'eventsource/client':true }
+        'process-consumer-error' : { 'eventsource/client':true },
+        'process-observer-error' : { 'eventsource/client':true }
       }
     }
   }

@@ -38,8 +38,8 @@ describe('Eventsource test suit', () =>
   })
 
   const
-    ppid    = Date.now().toString(32),
-    pid     = Date.now().toString(36),
+    ppid    = 'test-' + Date.now().toString(32),
+    pid     = 'test-' + Date.now().toString(36),
     domain  = 'test-domain',
     name    = 'test-event',
     data    = { test:pid },
@@ -50,7 +50,7 @@ describe('Eventsource test suit', () =>
     context(this, { title:'process event', value:event })
   })
 
-  it('observe when a domain event was persisted', function (done)
+  it('consume when a domain event was persisted', function (done)
   {
     const client  = core.locate('eventsource/client')
 
@@ -60,6 +60,21 @@ describe('Eventsource test suit', () =>
       expect(dto.pid).to.equal(pid)
       done()
     }).then(() => client.write(event))
+  })
+
+  it('observe when a domain event was persisted', function (done)
+  {
+    const 
+      client      = core.locate('eventsource/client'),
+      channel     = name + '-subscribe',
+      channelPid  = pid  + '-subscribe'
+
+    client.subscribe(domain, channel, (dto) =>
+    {
+      context(this, { title:'dto', value:dto })
+      expect(dto.pid).to.equal(channelPid)
+      done()
+    }).then(() => client.write({ ...event, name:channel, pid:channelPid }))
   })
 
   it('read the process state', async function ()

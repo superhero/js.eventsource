@@ -3,13 +3,14 @@
  */
 class EventsourceClient
 {
-  constructor(mapper, redis, publisher, subscriber, eventbus)
+  constructor(mapper, redis, publisher, subscriber, eventbus, console)
   {
     this.mapper           = mapper
     this.redis            = redis
     this.redisPublisher   = publisher
     this.redisSubscriber  = subscriber
     this.eventbus         = eventbus
+    this.console          = console
   }
 
   /**
@@ -275,11 +276,43 @@ class EventsourceClient
     })
   }
 
-  async onProcessConsumerError(error)
+  async subscribe(domain, name, observer)
+  {
+    const channel = this.mapper.toProcessPersistedChannel(domain, name)
+    this.redisSubscriber.pubsub.subscribe(channel, async (...args) =>
+    {
+      try
+      {
+        await observer(...args)
+      }
+      catch(previousError)
+      {
+        const error = new Error('eventsource observer failed')
+        error.code  = 'E_EVENTSOURCE_PROCESS_OBSERVER'
+        error.chain = { previousError, domain, name }
+
+        this.eventbus.emit('process-observer-error', error)
+      }
+    })
+  }
+
+  onProcessConsumerError(error)
+  {
+    return this.onError(error)
+  }
+
+  onProcessObserverError(error)
+  {
+    return this.onError(error)
+  }
+
+  async onError(error)
   {
     const
       { domain, name } = error.chain,
       channel = this.mapper.toProcessConsumerErrorChannel(domain, name)
+
+    this.console.color('red').log(`✗ ${domain}/${name} ${error.message}`)
 
     await this.redis.stream.write(channel, error)
     await this.redisPublisher.pubsub.publish(channel)
