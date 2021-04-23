@@ -241,7 +241,7 @@ class EventsourceClient
     return data
   }
 
-  async on(domain, name, consumer)
+  async consume(domain, name, consumer)
   {
     const channel = this.mapper.toProcessPersistedChannel(domain, name)
     await this.redis.stream.lazyloadConsumerGroup(channel, channel)

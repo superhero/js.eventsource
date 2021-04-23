@@ -54,7 +54,7 @@ describe('Eventsource test suit', () =>
   {
     const client  = core.locate('eventsource/client')
 
-    client.on(domain, name, async (dto) =>
+    client.consume(domain, name, async (dto) =>
     {
       context(this, { title:'dto', value:dto })
       expect(dto.pid).to.equal(pid)
