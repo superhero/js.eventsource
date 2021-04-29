@@ -11,6 +11,7 @@ class EventsourceClient
     this.redisSubscriber  = subscriber
     this.eventbus         = eventbus
     this.console          = console
+    this.observers        = {}
   }
 
   /**
@@ -294,6 +295,12 @@ class EventsourceClient
         this.eventbus.emit('process-observer-error', error)
       }
     })
+  }
+
+  async unsubscribe(domain, name)
+  {
+    const channel = this.mapper.toProcessPersistedChannel(domain, name)
+    this.redisSubscriber.pubsub.unsubscribe(channel)
   }
 
   onProcessConsumerError(error)
