@@ -118,13 +118,13 @@ class EventsourceClient
    * @param {string} domain
    * @param {string} name
    */
-  async readEventIndex(domain, name)
+  async readEventIndex(domain, name, start = 0, stop = 0)
   {
     try
     {
       const 
         eiKey   = this.mapper.toEventIndexKey(domain, name),
-        pidList = await this.redis.list.range(eiKey, 0, 0)
+        pidList = await this.redis.list.range(eiKey, start, stop)
 
       return pidList
     }
