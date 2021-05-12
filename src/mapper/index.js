@@ -16,12 +16,24 @@ class EventsourceMapper
 
   toEntityProcess(msg)
   {
-    return this.schema.compose('eventsource/schema/entity/process', msg)
+    const timestamp = msg.timestamp || Date.now()
+    return this.schema.compose('eventsource/schema/entity/process', { ...msg, timestamp })
   }
 
   toEventProcessPersisted(msg)
   {
     return this.schema.compose('eventsource/schema/event/process-persisted', msg)
+  }
+
+  toScore(timestamp)
+  {
+    return new Date(timestamp).getTime()
+  }
+
+  toScoredEventKey(domain)
+  {
+    domain = this.string.composeSeperatedLowerCase(domain)
+    return `se:${domain}`
   }
 
   toProcessStateKey(domain, pid)

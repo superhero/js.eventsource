@@ -4,6 +4,13 @@
  */
 const schema =
 {
+  'timestamp':
+  {
+    'type'      : 'timestamp',
+    'json'      : true,
+    'nullable'  : true,
+    'default'   : null
+  },
   'domain':
   {
     'type'      : 'string',
@@ -19,7 +26,7 @@ const schema =
     'type'      : 'string',
     'not-empty' : true,
     'nullable'  : true,
-    'default'   : true
+    'default'   : null
   },
   'name':
   {

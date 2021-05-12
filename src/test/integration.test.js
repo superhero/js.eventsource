@@ -38,12 +38,13 @@ describe('Eventsource test suit', () =>
   })
 
   const
-    ppid    = 'test-' + Date.now().toString(32),
-    pid     = 'test-' + Date.now().toString(36),
-    domain  = 'test-domain',
-    name    = 'test-event',
-    data    = { test:pid },
-    event   = { domain, ppid, pid, name, data }
+    timestamp = new Date().toJSON(),
+    ppid      = 'test-' + Date.now().toString(32),
+    pid       = 'test-' + Date.now().toString(36),
+    domain    = 'test-domain',
+    name      = 'test-event',
+    data      = { test:pid },
+    event     = { timestamp, domain, ppid, pid, name, data }
 
   beforeEach(function () 
   {

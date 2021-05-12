@@ -50,7 +50,9 @@ class Process
 
       try
       {
-        const { domain, pid, name, data } = process
+        const { timestamp, domain, pid, name, data } = process
+        const seKey = this.mapper.toScoredEventKey(domain)
+        await session.transaction.watch(seKey)
         const peKey = this.mapper.toProcessEventsKey(domain, pid)
         await session.transaction.watch(peKey)
         const psKey = this.mapper.toProcessStateKey(domain, pid)
@@ -60,9 +62,11 @@ class Process
         const eiKey = this.mapper.toEventIndexKey(domain, name)
         await session.transaction.watch(eiKey)
         await session.transaction.begin()
-        await session.hash.write(peKey, name, id)
-        await session.list.rpush(phKey, id)
-        await session.list.rpush(eiKey, pid)
+        const score = this.mapper.toScore(timestamp)
+        await session.ordered.write(seKey, score, id)
+        await session.hash.write(peKey, name, { id, timestamp })
+        await session.list.rpush(phKey, { id, timestamp })
+        await session.list.rpush(eiKey, { pid, timestamp })
         const state = await this.redis.key.read(psKey) || {}
         this.deepmerge.merge(state, data)
         await session.key.write(psKey, state)
@@ -72,13 +76,17 @@ class Process
         committed = await session.transaction.commit()
         committed && this.redisPublisher.pubsub.publish(processPersistedChannel, { pid, name, id })
 
-        this.console.log(`${committed ? '✔' : '✗'} ${domain}/${name}`)
+        this.console.color('green').log(`${committed ? '✔' : '✗'} ${domain}/${name}`)
       }
       catch(previousError)
       {
-        if(i > 10)
+        if(i >= 10)
         {
           throw previousError
+        }
+        else
+        {
+          this.console.color('red').log(`✗ retrying to percist process, attempt: ${`${i+1}`.padStart(2)} of 10, reason: ${previousError.message}`)
         }
       }
       finally
@@ -86,7 +94,7 @@ class Process
         await session.connection.quit()
       }
     }
-    while(!committed && ++i < 10)
+    while(!committed && i++ < 10)
   }
 
   async onProcessError(error)

@@ -73,7 +73,7 @@ class EventsourceClient
 
       for(let i = 0; i < response.length; i++)
       {
-        const id = response[i]
+        const { id } = response[i]
         response[i] = await this.redis.stream.read(channel, id)
       }
 
@@ -100,7 +100,7 @@ class EventsourceClient
       const 
         peKey     = this.mapper.toProcessEventsKey(domain, pid),
         channel   = this.mapper.toProcessEventQueuedChannel(),
-        id        = await this.redis.hash.read(peKey, name),
+        { id }    = await this.redis.hash.read(peKey, name),
         response  = await this.redis.stream.read(channel, id)
 
       return response && response.data
@@ -109,7 +109,55 @@ class EventsourceClient
     {
       const error = new Error('problem when reading the process state from the eventsource')
       error.code  = 'E_EVENTSOURCE_CLIENT_READ_STATE'
-      error.chain = { previousError, domain, pid }
+      error.chain = { previousError, domain, pid, name }
+      throw error
+    }
+  }
+
+  /**
+   * @param {number} id
+   */
+  async readEventById(id)
+  {
+    try
+    {
+      const 
+        channel   = this.mapper.toProcessEventQueuedChannel(),
+        response  = await this.redis.stream.read(channel, id)
+
+      return response && response.data
+    }
+    catch(previousError)
+    {
+      const error = new Error('problem when reading an event by queue id from the eventsource')
+      error.code  = 'E_EVENTSOURCE_CLIENT_READ_STATE_BY_ID'
+      error.chain = { previousError, channel, id }
+      throw error
+    }
+  }
+
+  /**
+   * @param {string} domain
+   * @param {string} from timestamp
+   * @param {string} to timestamp
+   */
+  async readEventByTimeRange(domain, from, to)
+  {
+    try
+    {
+      const
+        key       = this.mapper.toScoredEventKey(domain),
+        min       = this.mapper.toScore(from),
+        max       = this.mapper.toScore(to),
+        response  = await this.redis.ordered.read(key, min, max)
+
+      return response && response.data
+    }
+    catch(previousError)
+    {
+      const error = new Error('problem when reading events by timerange from the eventsource')
+      error.code  = 'E_EVENTSOURCE_CLIENT_READ_EVENT_BY_TIME_RANGE'
+      error.chain = { previousError, domain, from, to }
       throw error
     }
   }
