@@ -55,12 +55,20 @@ describe('Eventsource test suit', () =>
   {
     const client  = core.locate('eventsource/client')
 
-    client.consume(domain, name, async (dto) =>
+    client.consume(domain, name, (dto) =>
     {
       context(this, { title:'dto', value:dto })
       expect(dto.pid).to.equal(pid)
-      done()
-    }).then(() => client.write(event))
+      return new Promise((accept) => setTimeout(accept, 500))
+    }).then(() => 
+    {
+      client.consume(domain, name, async (dto) =>
+      {
+        context(this, { title:'dto', value:dto })
+        expect(dto.pid).to.equal(pid)
+        done()
+      }).then(() => client.write(event) && client.write(event))
+    })
   })
 
   it('observe when a domain event was persisted', function (done)
@@ -93,7 +101,7 @@ describe('Eventsource test suit', () =>
       client    = core.locate('eventsource/client'),
       eventlog  = await client.readEventlog(domain, pid)
     context(this, { title:'eventlog', value:eventlog  })
-    expect(eventlog).to.deep.equal([ event ])
+    expect(eventlog).to.deep.equal([ event, event ])
   })
 
   it('read the event name index', async function ()
