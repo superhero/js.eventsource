@@ -16,7 +16,7 @@ class EventsourceMapper
 
   toEntityProcess(msg)
   {
-    const timestamp = msg.timestamp || Date.now()
+    const timestamp = msg.timestamp || new Date().toJSON()
     return this.schema.compose('eventsource/schema/entity/process', { ...msg, timestamp })
   }
 
