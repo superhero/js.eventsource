@@ -11,7 +11,6 @@ class EventsourceClient
     this.redisSubscriber  = subscriber
     this.eventbus         = eventbus
     this.console          = console
-    this.observers        = {}
   }
 
   /**
@@ -324,6 +323,14 @@ class EventsourceClient
     this.redisSubscriber.pubsub.unsubscribeAll(channel)
   }
 
+  fetchSubscriberIds(domain, name)
+  {
+    const channel = this.mapper.toProcessPersistedChannel(domain, name)
+    return channel in this.redisSubscriber.pubsub.subscribers
+    ? Object.keys(this.redisSubscriber.pubsub.subscribers[channel]).map((n) => parseInt(n))
+    : []
+  }
+
   /**
    * @param {string} domain 
    * @param {string} name 
@@ -368,14 +375,19 @@ class EventsourceClient
     return consumerId
   }
 
-  async unconsume(domain, name, consumerId)
+  unconsume(domain, name, consumerId)
   {
-    await this.unsubscribe(domain, name, consumerId)
+    return this.unsubscribe(domain, name, consumerId)
   }
 
-  async unconsumeAll(domain, name)
+  unconsumeAll(domain, name)
   {
-    await this.unsubscribeAll(domain, name)
+    return this.unsubscribeAll(domain, name)
+  }
+
+  fetchConsumerIds(domain, name)
+  {
+    return this.fetchSubscriberIds(domain, name)
   }
 
   onProcessConsumerError(error)
