@@ -209,7 +209,6 @@ class EventsourceClient
   }
 
   /**
-   * 
    * @param {string} domain 
    * @param {string} pid 
    * @param {string} name 
@@ -290,12 +289,54 @@ class EventsourceClient
     return data
   }
 
+  async subscribe(domain, name, observer)
+  {
+    const 
+      channel       = this.mapper.toProcessPersistedChannel(domain, name),
+      subscriberId  = this.redisSubscriber.pubsub.subscribe(channel, async (...args) =>
+      {
+        try
+        {
+          await observer(...args)
+        }
+        catch(previousError)
+        {
+          const error = new Error('eventsource observer failed')
+          error.code  = 'E_EVENTSOURCE_PROCESS_OBSERVER'
+          error.chain = { previousError, domain, name }
+
+          this.eventbus.emit('process-observer-error', error)
+        }
+      })
+
+    return subscriberId
+  }
+
+  async unsubscribe(domain, name, subscriberId)
+  {
+    const channel = this.mapper.toProcessPersistedChannel(domain, name)
+    this.redisSubscriber.pubsub.unsubscribe(channel, subscriberId)
+  }
+
+  async unsubscribeAll(domain, name)
+  {
+    const channel = this.mapper.toProcessPersistedChannel(domain, name)
+    this.redisSubscriber.pubsub.unsubscribeAll(channel)
+  }
+
+  /**
+   * @param {string} domain 
+   * @param {string} name 
+   * @param {function} consumer 
+   * 
+   * @returns {number} the `subscriberId` is used as a `consumerId` 
+   */
   async consume(domain, name, consumer)
   {
     const channel = this.mapper.toProcessPersistedChannel(domain, name)
     await this.redis.stream.lazyloadConsumerGroup(channel, channel)
     let processing = false
-    this.redisSubscriber.pubsub.subscribe(channel, async () =>
+    const consumerId = this.redisSubscriber.pubsub.subscribe(channel, async () =>
     {
       if(!processing)
       {
@@ -323,32 +364,18 @@ class EventsourceClient
         }
       }
     })
+
+    return consumerId
   }
 
-  async subscribe(domain, name, observer)
+  async unconsume(domain, name, consumerId)
   {
-    const channel = this.mapper.toProcessPersistedChannel(domain, name)
-    this.redisSubscriber.pubsub.subscribe(channel, async (...args) =>
-    {
-      try
-      {
-        await observer(...args)
-      }
-      catch(previousError)
-      {
-        const error = new Error('eventsource observer failed')
-        error.code  = 'E_EVENTSOURCE_PROCESS_OBSERVER'
-        error.chain = { previousError, domain, name }
-
-        this.eventbus.emit('process-observer-error', error)
-      }
-    })
+    await this.unsubscribe(domain, name, consumerId)
   }
 
-  async unsubscribe(domain, name)
+  async unconsumeAll(domain, name)
   {
-    const channel = this.mapper.toProcessPersistedChannel(domain, name)
-    this.redisSubscriber.pubsub.unsubscribe(channel)
+    await this.unsubscribeAll(domain, name)
   }
 
   onProcessConsumerError(error)
