@@ -347,7 +347,7 @@ class EventsourceClient
           while(await this.redis.stream.readGroup(channel, channel, async (_, event) => 
           {
             const processPersisted = this.mapper.toEventProcessPersisted(event)
-            await consumer(processPersisted)
+            await consumer(processPersisted, consumerId)
           }));
         }
         catch(previousError)
