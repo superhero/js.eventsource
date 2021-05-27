@@ -114,6 +114,7 @@ class EventsourceClient
   }
 
   /**
+   * !!! TODO... wtf..? does this return a list of events, if so rename to plural name: "readEventsById"
    * @param {number} id
    */
   async readEventById(id)
