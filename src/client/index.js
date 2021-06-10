@@ -342,7 +342,6 @@ class EventsourceClient
   async consume(domain, name, consumer)
   {
     const channel = this.mapper.toProcessPersistedChannel(domain, name)
-    await this.redis.stream.lazyloadConsumerGroup(channel, channel)
     let processing = false
     const consumerId = this.redisSubscriber.pubsub.subscribe(channel, async () =>
     {
@@ -352,6 +351,7 @@ class EventsourceClient
 
         try
         {
+          await this.redis.stream.lazyloadConsumerGroup(channel, channel)
           while(await this.redis.stream.readGroup(channel, channel, async (_, event) => 
           {
             const processPersisted = this.mapper.toEventProcessPersisted(event)

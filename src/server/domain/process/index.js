@@ -106,9 +106,9 @@ class Process
 
   async onProcessErrorQueued()
   {
-    const 
-      channel = this.mapper.toProcessErrorQueuedChannel(),
-      error   = await this.redis.stream.readGroup(channel, channel)
+    const channel = this.mapper.toProcessErrorQueuedChannel()
+    await this.redis.stream.lazyloadConsumerGroup(channel, channel)
+    const error = await this.redis.stream.readGroup(channel, channel)
 
     error && this.console.error(channel, error)
   }
