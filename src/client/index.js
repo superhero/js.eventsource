@@ -106,8 +106,8 @@ class EventsourceClient
     }
     catch(previousError)
     {
-      const error = new Error('problem when reading the process state from the eventsource')
-      error.code  = 'E_EVENTSOURCE_CLIENT_READ_STATE'
+      const error = new Error('problem when reading the event from the eventsource')
+      error.code  = 'E_EVENTSOURCE_CLIENT_READ_EVENT'
       error.chain = { previousError, domain, pid, name }
       throw error
     }
