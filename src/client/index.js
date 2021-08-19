@@ -88,6 +88,10 @@ class EventsourceClient
   }
 
   /**
+   * TODO: if event does not exist, then trow an error that describes the issue better then currently:
+   * * Error: problem when reading the event from the eventsource
+   * * previousError: TypeError: Cannot destructure property `id` of 'undefined' or 'null'
+   * 
    * @param {string} domain
    * @param {string} pid
    * @param {string} name
@@ -404,10 +408,11 @@ class EventsourceClient
   async onError(error)
   {
     const
-      { domain, name } = error.chain,
-      channel = this.mapper.toProcessConsumerErrorChannel(domain, name)
+      domain  = error.chain.domain,
+      channel = this.mapper.toProcessConsumerErrorChannel(domain)
 
-    this.console.color('red').log(`✗ ${domain}/${name} ${error.message}`)
+    this.console.color('red').log(`✗ ${channel} -> ${error.chain.name} -> ${error.message}`)
+    this.console.color('red').log(error)
 
     await this.redis.stream.write(channel, error)
     await this.redisPublisher.pubsub.publish(channel)
