@@ -15,7 +15,7 @@ class RedisSubscriber
   {
     for(const channel of this.config.channels)
     {
-      this.redisSubscriber.pubsub.subscribe(channel, (dto) => this.eventbus.emit(channel, dto))
+      await this.redisSubscriber.pubsub.subscribe(channel, (dto) => this.eventbus.emit(channel, dto))
       await this.redis.stream.lazyloadConsumerGroup(channel, channel)
     }
   }
