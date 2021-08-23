@@ -297,7 +297,7 @@ class EventsourceClient
   {
     const 
       channel       = this.mapper.toProcessPersistedChannel(domain, name),
-      subscriberId  = this.redisSubscriber.pubsub.subscribe(channel, async (...args) =>
+      subscriberId  = await this.redisSubscriber.pubsub.subscribe(channel, async (...args) =>
       {
         try
         {
@@ -347,7 +347,7 @@ class EventsourceClient
   {
     const channel = this.mapper.toProcessPersistedChannel(domain, name)
     let processing = false
-    const consumerId = this.redisSubscriber.pubsub.subscribe(channel, async () =>
+    const consumerId = await this.redisSubscriber.pubsub.subscribe(channel, async () =>
     {
       if(!processing)
       {
