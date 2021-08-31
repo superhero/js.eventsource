@@ -15,14 +15,6 @@ module.exports =
         password  : 'top-secret-password',
         charset   : 'utf8'
       }
-    },
-    redis:
-    {
-      gateway:
-      {
-        host: '127.0.0.1',
-        port: '6379'
-      }
     }
   },
   client:
@@ -30,6 +22,14 @@ module.exports =
     eventsource:
     {
       domain  : 'test'
+    },
+    redis:
+    {
+      gateway:
+      {
+        host: '127.0.0.1',
+        port: '6375'
+      }
     }
   }
 }
