@@ -78,7 +78,7 @@ class Process
         committed = await session.transaction.commit()
         committed && broadcast && this.redisPublisher.pubsub.publish(processPersistedChannel, { pid, name, id, timestamp })
 
-        this.console.color('green').log(id, `${committed ? '✔' : '✗'} ${domain}/${name}`, processPersistedChannel)
+        this.console.color('green').log(id, `${committed ? '✔' : '✗'} ${domain}/${name}`)
       }
       catch(previousError)
       {
@@ -100,7 +100,7 @@ class Process
 
     if(!committed)
     {
-      this.console.color('false').log(id, `✝ ${domain}/${name} ← could not commit, ${i} attempts`)
+      this.console.color('false').log(id, `✝ ${process.domain}/${process.name} ← could not commit, ${i} attempts`)
     }
   }
 
