@@ -40,10 +40,8 @@ class Process
    */
   async persistProcess(id, event)
   {
-    this.console.log('wtf is this shit ---> event ---> ', event)
-
     const 
-      broadcast = event.broadcast,
+      broadcast = event.broadcast === undefined ? true : false,
       process   = this.mapper.toEntityProcess(event)
 
     let committed, i = 0
