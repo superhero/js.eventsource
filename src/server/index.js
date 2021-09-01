@@ -11,5 +11,4 @@ core.add('schema', __dirname + '/../schema')
 
 core.load()
 
-core.locate('core/bootstrap').bootstrap().then(() =>
-core.locate('core/http/server').listen(process.env.HTTP_PORT || 80))
+core.locate('core/bootstrap').bootstrap()
