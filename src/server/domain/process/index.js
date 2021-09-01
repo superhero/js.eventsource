@@ -40,7 +40,9 @@ class Process
    */
   async persistProcess(id, event)
   {
-    const process = this.mapper.toEntityProcess(event)
+    const 
+      broadcast = event.broadcast,
+      process   = this.mapper.toEntityProcess(event)
 
     let committed, i = 0
     
@@ -74,7 +76,7 @@ class Process
         const processPersistedEvent   = this.mapper.toEventProcessPersisted(process)
         await session.stream.write(processPersistedChannel, processPersistedEvent)
         committed = await session.transaction.commit()
-        committed && this.redisPublisher.pubsub.publish(processPersistedChannel, { pid, name, id, timestamp })
+        committed && broadcast && this.redisPublisher.pubsub.publish(processPersistedChannel, { pid, name, id, timestamp })
 
         this.console.color('green').log(`${committed ? '✔' : '✗'} ${domain}/${name}`)
       }

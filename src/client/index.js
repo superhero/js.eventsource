@@ -24,12 +24,9 @@ class EventsourceClient
       const
         channel   = this.mapper.toProcessEventQueuedChannel(),
         process   = this.mapper.toEntityProcess(input),
-        response  = await this.redis.stream.write(channel, process)
+        response  = await this.redis.stream.write(channel, { ...process, broadcast })
 
-      if(broadcast)
-      {
-        this.redisPublisher.pubsub.publish(channel)
-      }
+      this.redisPublisher.pubsub.publish(channel)
 
       return response
     }
