@@ -78,7 +78,7 @@ class Process
         committed = await session.transaction.commit()
         committed && broadcast && this.redisPublisher.pubsub.publish(processPersistedChannel, { pid, name, id, timestamp })
 
-        this.console.color('green').log(id, `${committed ? '✔' : '✗'} ${domain}/${name}`, processPersistedChannel, process.env.REDIS_HOST)
+        this.console.color('green').log(id, `${committed ? '✔' : '✗'} ${domain}/${name}`, processPersistedChannel)
       }
       catch(previousError)
       {

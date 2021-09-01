@@ -12,3 +12,5 @@ core.add('schema', __dirname + '/../schema')
 core.load()
 
 core.locate('core/bootstrap').bootstrap()
+
+console.log(process.env.REDIS_HOST)
