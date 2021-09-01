@@ -40,6 +40,8 @@ class Process
    */
   async persistProcess(id, event)
   {
+    this.console.log('wtf is this shit ---> event ---> ', event)
+
     const 
       broadcast = event.broadcast,
       process   = this.mapper.toEntityProcess(event)
