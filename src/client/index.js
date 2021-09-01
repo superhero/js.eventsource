@@ -15,8 +15,9 @@ class EventsourceClient
 
   /**
    * @param {Eventsource.Schema.EntityProcess} input 
+   * @param {boolean} [broadcast=true] 
    */
-  async write(input)
+  async write(input, broadcast=true)
   {
     try
     {
@@ -25,7 +26,10 @@ class EventsourceClient
         process   = this.mapper.toEntityProcess(input),
         response  = await this.redis.stream.write(channel, process)
 
-      this.redisPublisher.pubsub.publish(channel)
+      if(broadcast)
+      {
+        this.redisPublisher.pubsub.publish(channel)
+      }
 
       return response
     }
