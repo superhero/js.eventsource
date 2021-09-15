@@ -28,7 +28,7 @@ module.exports =
       gateway:
       {
         host: '127.0.0.1',
-        port: '6375'
+        port: '6379'
       }
     }
   }

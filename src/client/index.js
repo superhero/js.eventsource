@@ -75,6 +75,7 @@ class EventsourceClient
       {
         const { id } = response[i]
         response[i] = await this.redis.stream.read(channel, id)
+        response[i] = this.mapper.toEntityProcess(response[i])
       }
 
       return response
