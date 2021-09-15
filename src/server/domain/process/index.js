@@ -44,7 +44,7 @@ class Process
       broadcast = event.broadcast === undefined ? true : false,
       process   = this.mapper.toEntityProcess(event)
 
-    let committed, i = 0
+    let committed, i = 0, maxAttempts = 10
     
     do
     {
@@ -76,9 +76,16 @@ class Process
         const processPersistedEvent   = this.mapper.toEventProcessPersisted(process)
         await session.stream.write(processPersistedChannel, processPersistedEvent)
         committed = await session.transaction.commit()
-        committed && broadcast && this.redisPublisher.pubsub.publish(processPersistedChannel, { pid, name, id, timestamp })
 
-        this.console.color('green').log(id, `${committed ? '✔' : '✗'} ${domain}/${name}`)
+        if(committed)
+        {
+          broadcast && this.redisPublisher.pubsub.publish(processPersistedChannel, { pid, name, id, timestamp })
+          this.console.color('green').log(id, `✔ ${domain}/${name}`)
+        }
+        else
+        {
+          this.console.color('yellow').log(id, `! ${domain}/${name} ← could not commit, attempt: ${i+1} of ${maxAttempts}`)
+        }
       }
       catch(previousError)
       {
@@ -88,7 +95,8 @@ class Process
         }
         else
         {
-          this.console.color('red').log(`✗ retrying to percist process, attempt: ${`${i+1}`.padStart(2)} of 10, reason: ${previousError.message}`)
+          // not sure how to handle this, logging for now, should probably emit to an eventbus
+          this.console.color('red').log(`✗ retrying to percist process, attempt: ${i+1} of ${maxAttempts}, reason: ${previousError.message}`)
         }
       }
       finally
@@ -96,11 +104,12 @@ class Process
         await session.connection.quit()
       }
     }
-    while(!committed && i++ < 10)
+    while(!committed && i++ < maxAttempts)
 
     if(!committed)
     {
-      this.console.color('false').log(id, `✝ ${process.domain}/${process.name} ← could not commit, ${i} attempts`)
+      // not sure how to handle this, logging for now, should probably emit to an eventbus
+      this.console.color('red').log(id, `✝ ${process.domain}/${process.name} ← could not commit, ${i} attempts`)
     }
   }
 
