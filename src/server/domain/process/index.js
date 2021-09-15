@@ -41,7 +41,7 @@ class Process
   async persistProcess(id, event)
   {
     const 
-      broadcast   = event.broadcast === undefined ? true : false,
+      broadcast   = event.broadcast === undefined ? true : !!event.broadcast,
       process     = this.mapper.toEntityProcess(event),
       { timestamp, domain, pid, name, data } = process,
       seKey       = this.mapper.toScoredEventKey(domain),
