@@ -4,12 +4,11 @@
  */
 class Process
 {
-  constructor(redis, publisher, mapper, deepmerge, eventbus, console)
+  constructor(redis, publisher, mapper, eventbus, console)
   {
     this.redis          = redis
     this.redisPublisher = publisher
     this.mapper         = mapper
-    this.deepmerge      = deepmerge
     this.eventbus       = eventbus
     this.console        = console
   }
@@ -43,72 +42,26 @@ class Process
     const 
       broadcast   = event.broadcast === undefined ? true : !!event.broadcast,
       process     = this.mapper.toEntityProcess(event),
-      { timestamp, domain, pid, name, data } = process,
-      seKey       = this.mapper.toScoredEventKey(domain),
-      peKey       = this.mapper.toProcessEventsKey(domain, pid),
-      psKey       = this.mapper.toProcessStateKey(domain, pid),
+      { timestamp, domain, pid, name } = process,
       phKey       = this.mapper.toProcessHistoryKey(domain, pid),
-      eiKey       = this.mapper.toEventIndexKey(domain, name),
-      score       = this.mapper.toScore(timestamp),
-      maxAttempts = 10
+      score       = this.mapper.toScore(timestamp)
 
-    let committed, i = 0
-    
-    do
+    try
     {
-      const session = await this.redis.createSession()
-
-      try
-      {
-        await session.transaction.watch(seKey)
-        await session.transaction.watch(peKey)
-        await session.transaction.watch(psKey)
-        await session.transaction.watch(phKey)
-        await session.transaction.watch(eiKey)
-        await session.transaction.begin()
-        await session.ordered.write(seKey, score, id)
-        await session.hash.write(peKey, name, { id, timestamp })
-        await session.list.rpush(phKey, { id, timestamp })
-        await session.list.rpush(eiKey, { pid, timestamp })
-        const state = await this.redis.key.read(psKey) || {}
-        this.deepmerge.merge(state, data)
-        await session.key.write(psKey, state)
-        committed = await session.transaction.commit()
-      }
-      catch(previousError)
-      {
-        if(i >= 10)
-        {
-          throw previousError
-        }
-        else
-        {
-          // not sure how to handle this, logging for now, should probably emit to an eventbus
-          this.console.color('red').log(`✗ retrying to percist process, attempt: ${i+1} of ${maxAttempts}, reason: ${previousError.message}`)
-        }
-      }
-      finally
-      {
-        await session.connection.quit()
-      }
+      await this.redis.ordered.write(phKey, id, score)
     }
-    while(!committed && i++ < maxAttempts)
-
-    if(committed)
+    catch(previousError)
     {
-      const 
-        ppChannel   = this.mapper.toProcessPersistedChannel(domain, name),
-        ppEvent     = this.mapper.toEventProcessPersisted(process)
+      const error = new Error(`${domain}/${name}/${pid} could not be persisted`)
+      error.code  = 'E_EVENTSOURCE_PERSIST_PROCESS'
+      error.chain = { previousError, id, event }
+      throw error
+    }
 
-      await this.redis.stream.write(ppChannel, ppEvent)
-      broadcast && this.redisPublisher.pubsub.publish(ppChannel, { pid, name, id, timestamp })
-      this.console.color('green').log(id, `✔ ${domain}/${name}`)
-    }
-    else
-    {
-      // not sure how to handle this, logging for now, should probably emit to an eventbus
-      this.console.color('red').log(id, `✝ ${process.domain}/${process.name} ← could not commit, ${i} attempts`)
-    }
+    const ppChannel = this.mapper.toProcessPersistedChannel(domain, name)
+    await this.redis.stream.write(ppChannel, { id })
+    broadcast && this.redisPublisher.pubsub.publish(ppChannel, process)
+    this.console.color('green').log(id, `✔ ${pid} → ${domain}/${name}`)
   }
 
   async onProcessError(error)

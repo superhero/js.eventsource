@@ -3,12 +3,13 @@
  */
 class EventsourceClient
 {
-  constructor(mapper, redis, publisher, subscriber, eventbus, console)
+  constructor(mapper, redis, publisher, subscriber, deepmerge, eventbus, console)
   {
     this.mapper           = mapper
     this.redis            = redis
     this.redisPublisher   = publisher
     this.redisSubscriber  = subscriber
+    this.deepmerge        = deepmerge
     this.eventbus         = eventbus
     this.console          = console
   }
@@ -39,15 +40,41 @@ class EventsourceClient
     }
   }
 
+  /**
+   * @param {string} domain
+   * @param {string} pid
+   */
+  async readEventlog(domain, pid)
+  {
+    try
+    {
+      const
+        phKey     = this.mapper.toProcessHistoryKey(domain, pid),
+        history   = await this.redis.ordered.read(phKey),
+        channel   = this.mapper.toProcessEventQueuedChannel(),
+        eventlog  = await Promise.all(history.map((id) => this.redis.stream.read(channel, id))),
+        filtered  = eventlog.map(this.mapper.toEntityProcess.bind(this.mapper))
+
+      return filtered
+    }
+    catch(previousError)
+    {
+      const error = new Error('problem when reading the process eventlog from the eventsource')
+      error.code  = 'E_EVENTSOURCE_CLIENT_READ_EVENTLOG'
+      error.chain = { previousError, domain, pid }
+      throw error
+    }
+  }
+
   async readState(domain, pid)
   {
     try
     {
-      const 
-        psKey     = this.mapper.toProcessStateKey(domain, pid),
-        response  = await this.redis.key.read(psKey)
+      const
+        eventlog  = await this.readEventlog(domain, pid),
+        state     = this.deepmerge.merge({}, ...eventlog.map((event) => event.data))
 
-      return response
+      return state
     }
     catch(previousError)
     {
@@ -61,66 +88,41 @@ class EventsourceClient
   /**
    * @param {string} domain
    * @param {string} pid
+   * @param {string} name
+   * @param {string} [timestamp] optional, will pop the last event persisted if emitted
    */
-  async readEventlog(domain, pid)
+  async readEvent(domain, pid, name, timestamp)
   {
     try
     {
       const
-        phKey     = this.mapper.toProcessHistoryKey(domain, pid),
-        channel   = this.mapper.toProcessEventQueuedChannel(),
-        response  = await this.redis.list.range(phKey, 0, 0)
+        eventlog  = await this.readEventlog(domain, pid),
+        filtered  = timestamp
+                    ? eventlog.filter((event) => event.name === name && event.timestamp === timestamp)
+                    : eventlog.filter((event) => event.name === name)
 
-      for(let i = 0; i < response.length; i++)
+      return filtered.pop().data
+    }
+    catch(previousError)
+    {
+      if(previousError instanceof TypeError)
       {
-        const { id } = response[i]
-        response[i] = await this.redis.stream.read(channel, id)
-        response[i] = this.mapper.toEntityProcess(response[i])
+        const error = new Error('could not find the event in the eventlog')
+        error.code  = 'E_EVENTSOURCE_CLIENT_READ_EVENT_NOT_FOUND'
+        error.chain = { previousError, domain, pid, name, timestamp }
+        throw error
       }
-
-      return response
-    }
-    catch(previousError)
-    {
-      const error = new Error('problem when reading the process eventlog from the eventsource')
-      error.code  = 'E_EVENTSOURCE_CLIENT_READ_EVENTLOG'
-      error.chain = { previousError, domain, pid }
-      throw error
+      else
+      {
+        const error = new Error('problem when reading the event from the eventsource')
+        error.code  = 'E_EVENTSOURCE_CLIENT_READ_EVENT'
+        error.chain = { previousError, domain, pid, name, timestamp }
+        throw error
+      }
     }
   }
 
   /**
-   * TODO: if event does not exist, then trow an error that describes the issue better then currently:
-   * * Error: problem when reading the event from the eventsource
-   * * previousError: TypeError: Cannot destructure property `id` of 'undefined' or 'null'
-   * 
-   * @param {string} domain
-   * @param {string} pid
-   * @param {string} name
-   */
-  async readEvent(domain, pid, name)
-  {
-    try
-    {
-      const 
-        peKey     = this.mapper.toProcessEventsKey(domain, pid),
-        channel   = this.mapper.toProcessEventQueuedChannel(),
-        { id }    = await this.redis.hash.read(peKey, name),
-        response  = await this.redis.stream.read(channel, id)
-
-      return response && response.data
-    }
-    catch(previousError)
-    {
-      const error = new Error('problem when reading the event from the eventsource')
-      error.code  = 'E_EVENTSOURCE_CLIENT_READ_EVENT'
-      error.chain = { previousError, domain, pid, name }
-      throw error
-    }
-  }
-
-  /**
-   * !!! TODO... wtf..? does this return a list of events, if so rename to plural name: "readEventsById"
    * @param {number} id
    */
   async readEventById(id)
@@ -131,85 +133,13 @@ class EventsourceClient
         channel   = this.mapper.toProcessEventQueuedChannel(),
         response  = await this.redis.stream.read(channel, id)
 
-      return response && response.data
+      return response
     }
     catch(previousError)
     {
       const error = new Error('problem when reading an event by queue id from the eventsource')
       error.code  = 'E_EVENTSOURCE_CLIENT_READ_STATE_BY_ID'
-      error.chain = { previousError, channel, id }
-      throw error
-    }
-  }
-
-  /**
-   * @param {string} domain
-   * @param {string} from timestamp
-   * @param {string} to timestamp
-   */
-  async readEventByTimeRange(domain, from, to)
-  {
-    try
-    {
-      const
-        key       = this.mapper.toScoredEventKey(domain),
-        min       = this.mapper.toScore(from),
-        max       = this.mapper.toScore(to),
-        response  = await this.redis.ordered.read(key, min, max)
-
-      return response && response.data
-    }
-    catch(previousError)
-    {
-      const error = new Error('problem when reading events by timerange from the eventsource')
-      error.code  = 'E_EVENTSOURCE_CLIENT_READ_EVENT_BY_TIME_RANGE'
-      error.chain = { previousError, domain, from, to }
-      throw error
-    }
-  }
-
-  /**
-   * @param {string} domain
-   * @param {string} name
-   */
-  async readEventIndex(domain, name, start = 0, stop = 0)
-  {
-    try
-    {
-      const 
-        eiKey   = this.mapper.toEventIndexKey(domain, name),
-        pidList = await this.redis.list.range(eiKey, start, stop)
-
-      return pidList
-    }
-    catch(previousError)
-    {
-      const error = new Error('problem when reading the event name index from the eventsource')
-      error.code  = 'E_EVENTSOURCE_CLIENT_READ_EVENT_NAME_INDEX'
-      error.chain = { previousError, domain, name }
-      throw error
-    }
-  }
-
-  /**
-   * @param {string} domain
-   * @param {string} name
-   */
-  async readEventIndexLength(domain, name)
-  {
-    try
-    {
-      const 
-        eiKey   = this.mapper.toEventIndexKey(domain, name),
-        length  = await this.redis.list.length(eiKey)
-
-      return length
-    }
-    catch(previousError)
-    {
-      const error = new Error('problem when reading the event name index length from the eventsource')
-      error.code  = 'E_EVENTSOURCE_CLIENT_READ_EVENT_NAME_INDEX_LENGTH'
-      error.chain = { previousError, domain, name }
+      error.chain = { previousError, id }
       throw error
     }
   }
@@ -223,18 +153,22 @@ class EventsourceClient
   {
     try
     {
-      const 
-        peKey = this.mapper.toProcessEventsKey(domain, pid),
-        id    = await this.redis.hash.read(peKey, name)
-
-      return !!id
+      await this.readEvent(domain, pid, name)
+      return true
     }
     catch(previousError)
     {
-      const error = new Error('problem when reading if the event exists in the eventsource')
-      error.code  = 'E_EVENTSOURCE_CLIENT_HAS_EVENT'
-      error.chain = { previousError, domain, pid }
-      throw error
+      if(previousError.code === 'E_EVENTSOURCE_CLIENT_READ_EVENT_NOT_FOUND')
+      {
+        return false
+      }
+      else
+      {
+        const error = new Error('problem when reading if the event exists in the eventsource')
+        error.code  = 'E_EVENTSOURCE_CLIENT_HAS_EVENT'
+        error.chain = { previousError, domain, pid, name }
+        throw error
+      }
     }
   }
 
@@ -357,10 +291,13 @@ class EventsourceClient
         processing = true
         try
         {
-          while(await this.redis.stream.readGroup(channel, channel, async (_, event) => 
+          while(await this.redis.stream.readGroup(channel, channel, async (_, dto) =>
           {
-            const processPersisted = this.mapper.toEventProcessPersisted(event)
-            await consumer(processPersisted, consumerId)
+            const
+              channel = this.mapper.toProcessEventQueuedChannel(),
+              event   = await this.redis.stream.read(channel, dto.id)
+
+            await consumer(event, consumerId)
           }));
         }
         catch(previousError)
@@ -421,6 +358,7 @@ class EventsourceClient
 
   async quit()
   {
+    await this.redis.connection.quit()
     await this.redisPublisher.connection.quit()
     await this.redisSubscriber.connection.quit()
   }

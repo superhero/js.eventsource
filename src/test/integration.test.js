@@ -104,24 +104,6 @@ describe('Eventsource test suit', () =>
     expect(eventlog).to.deep.equal([ event, event ])
   })
 
-  it('read the event name index', async function ()
-  {
-    const
-      client          = core.locate('eventsource/client'),
-      eventNameIndex  = await client.readEventIndex(domain, name)
-    context(this, { title:'event name index', value:eventNameIndex  })
-    expect(eventNameIndex.length).to.be.gt(0)
-  })
-
-  it('read the event name index length', async function ()
-  {
-    const
-      client                = core.locate('eventsource/client'),
-      eventNameIndexLength  = await client.readEventIndexLength(domain, name)
-    context(this, { title:'event name index length', value:eventNameIndexLength  })
-    expect(eventNameIndexLength).to.be.gt(0)
-  })
-
   it('read an process event', async function ()
   {
     const

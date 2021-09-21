@@ -19,9 +19,10 @@ class EventsourceClientLocator extends LocatorConstituent
       subscriber  = redis.createSession(),
       mapper      = this.locator.locate('eventsource/mapper'),
       eventbus    = this.locator.locate('core/eventbus'),
+      deepmerge   = this.locator.locate('core/deepmerge'),
       console     = this.locator.locate('core/console')
 
-    return new EventsourceClient(mapper, redis, publisher, subscriber, eventbus, console)
+    return new EventsourceClient(mapper, redis, publisher, subscriber, deepmerge, eventbus, console)
   }
 }
 
