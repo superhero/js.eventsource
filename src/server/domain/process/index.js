@@ -60,7 +60,7 @@ class Process
 
     const ppChannel = this.mapper.toProcessPersistedChannel(domain, name)
     await this.redis.stream.write(ppChannel, { id })
-    broadcast && this.redisPublisher.pubsub.publish(ppChannel, process)
+    broadcast && this.redisPublisher.pubsub.publish(ppChannel, { id })
     this.console.color('green').log(id, `✔ ${pid} → ${domain}/${name}`)
   }
 

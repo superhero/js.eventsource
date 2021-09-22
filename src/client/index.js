@@ -234,11 +234,12 @@ class EventsourceClient
   {
     const 
       channel       = this.mapper.toProcessPersistedChannel(domain, name),
-      subscriberId  = await this.redisSubscriber.pubsub.subscribe(channel, async (...args) =>
+      subscriberId  = await this.redisSubscriber.pubsub.subscribe(channel, async (dto) =>
       {
         try
         {
-          await observer(...args)
+          const event = await this.readEventById(dto.id)
+          await observer(event, dto.id, subscriberId)
         }
         catch(previousError)
         {
@@ -294,11 +295,8 @@ class EventsourceClient
         {
           while(await this.redis.stream.readGroup(channel, channel, async (_, dto) =>
           {
-            const
-              channel = this.mapper.toProcessEventQueuedChannel(),
-              event   = await this.redis.stream.read(channel, dto.id)
-
-            await consumer(event, consumerId)
+            const event = await this.readEventById(dto.id)
+            await consumer(event, dto.id, consumerId)
           }));
         }
         catch(previousError)
