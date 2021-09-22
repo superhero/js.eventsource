@@ -14,10 +14,10 @@ class EventsourceMapper
     return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2)
   }
 
-  toEntityProcess(msg)
+  toEntityProcess(msg, immutable)
   {
     const timestamp = msg.timestamp || new Date().toJSON()
-    return this.schema.compose('eventsource/schema/entity/process', { ...msg, timestamp })
+    return this.schema.compose('eventsource/schema/entity/process', { ...msg, timestamp }, immutable)
   }
 
   toScore(timestamp)

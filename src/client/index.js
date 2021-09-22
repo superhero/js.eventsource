@@ -43,8 +43,9 @@ class EventsourceClient
   /**
    * @param {string} domain
    * @param {string} pid
+   * @param {boolean} [immutable]
    */
-  async readEventlog(domain, pid)
+  async readEventlog(domain, pid, immutable)
   {
     try
     {
@@ -53,7 +54,7 @@ class EventsourceClient
         history   = await this.redis.ordered.read(phKey),
         channel   = this.mapper.toProcessEventQueuedChannel(),
         eventlog  = await Promise.all(history.map((id) => this.redis.stream.read(channel, id))),
-        filtered  = eventlog.map(this.mapper.toEntityProcess.bind(this.mapper))
+        filtered  = eventlog.map((event) => this.mapper.toEntityProcess(event, immutable))
 
       return filtered
     }
@@ -71,8 +72,8 @@ class EventsourceClient
     try
     {
       const
-        eventlog  = await this.readEventlog(domain, pid),
-        state     = this.deepmerge.merge({}, ...eventlog.map((event) => event.data))
+        eventlog  = await this.readEventlog(domain, pid, false),
+        state     = this.deepmerge.merge(...eventlog.map((event) => event.data))
 
       return state
     }

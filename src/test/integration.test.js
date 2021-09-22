@@ -88,11 +88,19 @@ describe('Eventsource test suit', () =>
 
   it('read the process state', async function ()
   {
-    const 
-      client        = core.locate('eventsource/client'),
-      processState  = await client.readState(domain, pid)
-    context(this, { title:'process state', value:processState })
-    expect(processState).to.deep.equal(data)
+    try
+    {
+      const 
+        client        = core.locate('eventsource/client'),
+        processState  = await client.readState(domain, pid)
+      context(this, { title:'process state', value:processState })
+      expect(processState).to.deep.equal(data)
+    }
+    catch(error)
+    {
+      console.log(error)
+      throw error
+    }
   })
 
   it('read the eventlog', async function ()
