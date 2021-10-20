@@ -4,13 +4,95 @@
  */
 class Process
 {
-  constructor(redis, publisher, mapper, eventbus, console)
+  constructor(redis, publisher, subscriber, mapper, eventbus, console, channels)
   {
-    this.redis          = redis
-    this.redisPublisher = publisher
-    this.mapper         = mapper
-    this.eventbus       = eventbus
-    this.console        = console
+    this.redis            = redis
+    this.redisPublisher   = publisher
+    this.redisSubscriber  = subscriber
+    this.mapper           = mapper
+    this.eventbus         = eventbus
+    this.console          = console
+    this.channels         = channels
+  }
+
+  async bootstrap()
+  {
+    for(const channel of this.channels)
+    {
+      await this.redisSubscriber.pubsub.subscribe(channel, (dto) => this.eventbus.emit(channel, dto))
+    }
+
+    await this.bootstrapProcessSchedule()
+  }
+
+  async bootstrapProcessSchedule()
+  {
+    const
+      scheduledKey  = this.mapper.toProcessEventScheduledKey(),
+      minimum       = true,
+      timestamp     = await this.redis.ordered.readScore(scheduledKey, minimum)
+
+    timestamp && this.onProcessEventScheduled(timestamp)
+  }
+
+  onProcessEventScheduled(timestamp)
+  {
+    const timeout = new Date(timestamp).getTime() - Date.now()
+    this.timeout = Math.min(timeout, this.timeout || timeout)
+    clearTimeout(this.timeoutId)
+    this.timeoutId = setTimeout(async () =>
+    {
+      await this.persistTimedoutScheduledProcesses()
+      await this.bootstrapProcessSchedule()
+    },
+    this.timeout)
+  }
+
+  async persistTimedoutScheduledProcesses()
+  {
+    const
+      scheduledKey  = this.mapper.toProcessEventScheduledKey(),
+      queueChannel  = this.mapper.toProcessEventQueuedChannel(),
+      session       = this.redis.createSession()
+
+    try
+    {
+      await session.transaction.watch(scheduledKey)
+      await session.transaction.begin()
+  
+      const 
+        now   = Date.now(),
+        list  = await this.redis.ordered.read(scheduledKey, 0, now)
+  
+      for(const input of list)
+      {
+        try
+        {
+          const process = this.mapper.toEntityProcess(input)
+          await session.stream.write(queueChannel, process)
+  
+          this.redisPublisher.pubsub.publish(queueChannel)
+
+          this.console.color('cyan').log(`✔ ${process.pid} → ${process.domain}/${process.name} → scheduled event queued`)
+        }
+        catch(error)
+        {
+          this.eventbus.emit('schedule-error', error)
+        }
+      }
+  
+      await session.ordered.delete(scheduledKey, 0, now)
+      await session.transaction.commit()
+    }
+    catch(error)
+    {
+      await session.transaction.roleback()
+      this.eventbus.emit('schedule-error', error)
+    }
+    finally
+    {
+      await session.connection.quit()
+    }
   }
 
   async onProcessEventQueued()
@@ -21,6 +103,7 @@ class Process
       try
       {
         const channel = this.mapper.toProcessEventQueuedChannel()
+        await this.redis.stream.lazyloadConsumerGroup(channel, channel)
         while(await this.redis.stream.readGroup(channel, channel, this.persistProcess.bind(this)));
       }
       catch(error)
@@ -61,7 +144,7 @@ class Process
     const ppChannel = this.mapper.toProcessPersistedChannel(domain, name)
     await this.redis.stream.write(ppChannel, { id })
     broadcast && this.redisPublisher.pubsub.publish(ppChannel, { id })
-    this.console.color('green').log(id, `✔ ${pid} → ${domain}/${name}`)
+    this.console.color('green').log(`✔ ${pid} → ${domain}/${name} → ${id}`)
   }
 
   async onProcessError(error)
@@ -80,9 +163,27 @@ class Process
     error && this.console.error(channel, error)
   }
 
-  quit()
+  async onScheduleError(error)
   {
-    return this.redisPublisher.connection.quit()
+    const channel = this.mapper.toProcessErrorScheduledChannel()
+    await this.redis.stream.write(channel, error)
+    await this.redisPublisher.pubsub.publish(channel)
+  }
+
+  async onProcessErrorScheduled()
+  {
+    const channel = this.mapper.toProcessErrorScheduledChannel()
+    await this.redis.stream.lazyloadConsumerGroup(channel, channel)
+    const error = await this.redis.stream.readGroup(channel, channel)
+
+    error && this.console.error(channel, error)
+  }
+
+  async quit()
+  {
+    await this.redisPublisher.connection.quit()
+    await this.redisSubscriber.connection.quit()
+    await this.redis.connection.quit()
   }
 }
 

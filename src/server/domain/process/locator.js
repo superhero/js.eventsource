@@ -14,13 +14,16 @@ class ProcessLocator extends LocatorConstituent
   locate()
   {
     const
-      redis     = this.locator.locate('redis/client'),
-      publisher = redis.createSession(),
-      mapper    = this.locator.locate('eventsource/mapper'),
-      eventbus  = this.locator.locate('core/eventbus'),
-      console   = this.locator.locate('core/console')
+      redis         = this.locator.locate('redis/client'),
+      publisher     = redis.createSession(),
+      subscriber    = redis.createSession(),
+      mapper        = this.locator.locate('eventsource/mapper'),
+      eventbus      = this.locator.locate('core/eventbus'),
+      console       = this.locator.locate('core/console'),
+      configuration = this.locator.locate('core/configuration'),
+      channels      = configuration.find('domain/process/channels')
 
-    return new Process(redis, publisher, mapper, eventbus, console)
+    return new Process(redis, publisher, subscriber, mapper, eventbus, console, channels)
   }
 }
 

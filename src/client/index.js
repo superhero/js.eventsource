@@ -41,6 +41,31 @@ class EventsourceClient
   }
 
   /**
+   * @param {string|number} timestamp value representing the time when the event should be persisted
+   * @param {Eventsource.Schema.EntityProcess} input 
+   */
+  async schedule(timestamp, input)
+  {
+    try
+    {
+      const 
+        scheduledKey    = this.mapper.toProcessEventScheduledKey(),
+        scheduledScore  = new Date(timestamp).getTime(),
+        process         = this.mapper.toEntityProcess(input)
+
+      await this.redis.ordered.write(scheduledKey, process, scheduledScore)
+      this.redisPublisher.pubsub.publish(scheduledKey, scheduledScore)
+    }
+    catch(previousError)
+    {
+      const error = new Error('problem when writing the process event to the eventsource')
+      error.code  = 'E_EVENTSOURCE_CLIENT_SCHEDULE'
+      error.chain = { previousError, timestamp, input }
+      throw error
+    }
+  }
+
+  /**
    * @param {string} domain
    * @param {string} pid
    * @param {boolean} [immutable]

@@ -7,31 +7,35 @@ module.exports =
   {
     bootstrap:
     {
-      'redis-subscriber' : 'api/redis-subscriber'
+      'domain-process' : 'domain/process'
     },
     locator:
     {
-      'api/*'     : __dirname + '/api/*',
       'domain/*'  : __dirname + '/domain/*'
     },
     eventbus:
     {
       'observers' : 
       {
-        'process-event-queued'  : { 'domain/process':true }, 
-        'process-error-queued'  : { 'domain/process':true },
-        'process-error'         : { 'domain/process':true } 
+        'process-event-scheduled' : { 'domain/process':true },
+        'process-error-scheduled' : { 'domain/process':true },
+        'schedule-error'          : { 'domain/process':true },
+        'process-event-queued'    : { 'domain/process':true },
+        'process-error-queued'    : { 'domain/process':true },
+        'process-error'           : { 'domain/process':true }
       }
     }
   },
-  api:
+  domain:
   {
-    'redis-subscriber':
+    process:
     {
-      channels: 
+      channels:
       [
-        'process-error-queued',
-        'process-event-queued'
+        'process-event-scheduled',
+        'process-error-scheduled',
+        'process-event-queued',
+        'process-error-queued'
       ]
     }
   },

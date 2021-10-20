@@ -46,6 +46,16 @@ class EventsourceMapper
   {
     return 'process-error-queued'
   }
+  
+  toProcessEventScheduledKey()
+  {
+    return 'process-event-scheduled'
+  }
+
+  toProcessErrorScheduledChannel()
+  {
+    return 'process-error-scheduled'
+  }
 
   toProcessPersistedChannel(domain, name)
   {

@@ -30,10 +30,8 @@ describe('Eventsource test suit', () =>
   {
     setTimeout(async() =>
     {
-      await core.locate('api/redis-subscriber').quit(),
-      await core.locate('domain/process').quit(),
-      await core.locate('eventsource/client').quit(),
-      await core.locate('redis/client').connection.quit()
+      await core.locate('domain/process').quit()
+      await core.locate('eventsource/client').quit()
     },2e3)
   })
 
@@ -62,7 +60,7 @@ describe('Eventsource test suit', () =>
       return new Promise((accept) => setTimeout(accept, 500))
     }).then(() => 
     {
-      client.consume(domain, name, async (dto) =>
+      client.consume(domain, name, (dto) =>
       {
         context(this, { title:'dto', value:dto })
         expect(dto.pid).to.equal(pid)
@@ -146,5 +144,23 @@ describe('Eventsource test suit', () =>
       eventData = await client.lazyload(domain, pid, 'foobar', async () => 123)
     context(this, { title:'event data',  value:eventData })
     expect(eventData).to.equal(123)
+  })
+
+  it('can schedule an event to be persisted in the future', function (done)
+  {
+    const
+      client        = core.locate('eventsource/client'),
+      scheduledPid  = pid   + '-scheduled',
+      scheduledName = name  + '-scheduled',
+      timestamp     = Date.now() + 250
+
+    client.consume(domain, scheduledName, (dto) =>
+    {
+      context(this, { title:'dto', value:dto })
+      expect(dto.pid).to.equal(scheduledPid)
+      expect(dto.name).to.equal(scheduledName)
+      expect(dto.data).to.deep.equal(data)
+      done()
+    }).then(() => client.schedule(timestamp, { domain, pid:scheduledPid, name:scheduledName, data }))
   })
 })
