@@ -1,0 +1,18 @@
+steps:
+  # Docker Build
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 
+           'europe-west1-docker.pkg.dev/${PROJECT_ID}/pkg-super-duper-test/eventsource', 
+           '.']
+
+  # Docker Push
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'europe-west1-docker.pkg.dev/${PROJECT_ID}/pkg-super-duper-test/eventsource']
+
+  # deploy container image to GKE
+  - name: "gcr.io/cloud-builders/gke-deploy"
+    args:
+    - run
+    - --filename=kube
+    - --location=europe-west1-b
+    - --cluster=gke-super-duper-test
