@@ -13,6 +13,10 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'europe-west1-docker.pkg.dev/${PROJECT_ID}/pkg-super-duper-test/eventsource:latest']
 
+  # Get K8S Repository.
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:alpine'
+    entrypoint: 'git'
+    args: ['clone', 'https://github.com/AdamoTelecom/eventsource.git']
 
   # deploy container image to GKE
   - name: "gcr.io/cloud-builders/gke-deploy"
