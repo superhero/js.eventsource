@@ -10,6 +10,9 @@ steps:
   # Docker Push
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'europe-west1-docker.pkg.dev/${PROJECT_ID}/pkg-super-duper-test/eventsource:$SHORT_SHA']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'europe-west1-docker.pkg.dev/${PROJECT_ID}/pkg-super-duper-test/eventsource:latest']
+
 
   # deploy container image to GKE
   - name: "gcr.io/cloud-builders/gke-deploy"
