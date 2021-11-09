@@ -7,12 +7,13 @@ steps:
 
   # Docker Push
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'europe-west1-docker.pkg.dev/${PROJECT_ID}/pkg-super-duper-test/eventsource']
+    args: ['push', 'europe-west1-docker.pkg.dev/${PROJECT_ID}/pkg-super-duper-test/eventsource:$SHORT_SHA']
 
   # deploy container image to GKE
   - name: "gcr.io/cloud-builders/gke-deploy"
     args:
     - run
     - --filename=kube
+    - --image=europe-west1-docker.pkg.dev/${PROJECT_ID}/pkg-super-duper-test/eventsource:$SHORT_SHA
     - --location=europe-west1-b
     - --cluster=gke-super-duper-test
