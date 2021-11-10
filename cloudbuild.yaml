@@ -22,7 +22,7 @@ steps:
   - name: "gcr.io/cloud-builders/gke-deploy"
     args:
     - run
-    - --filename=kube
+    - --filename=github_adamotelecom_eventsource/kube
     - --image=europe-west1-docker.pkg.dev/${PROJECT_ID}/pkg-super-duper-test/eventsource:$SHORT_SHA
     - --location=europe-west1-b
     - --cluster=gke-super-duper-test
