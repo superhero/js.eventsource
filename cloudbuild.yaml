@@ -16,13 +16,13 @@ steps:
   # Get K8S Repository.
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:alpine'
     entrypoint: 'git'
-    args: ['clone', 'https://source.developers.google.com/p/gke-super-duper-test/r/github_adamotelecom_eventsource']
+    args: ['clone', 'git clone https://source.developers.google.com/p/gke-super-duper-test/r/github_adamotelecom_gke-test-objects']
 
   # deploy container image to GKE
   - name: "gcr.io/cloud-builders/gke-deploy"
     args:
     - run
-    - --filename=github_adamotelecom_eventsource/kube
+    - --filename=gke-super-duper-test/eventsource.yaml
     - --image=europe-west1-docker.pkg.dev/${PROJECT_ID}/pkg-super-duper-test/eventsource:$SHORT_SHA
     - --location=europe-west1-b
     - --cluster=gke-super-duper-test
