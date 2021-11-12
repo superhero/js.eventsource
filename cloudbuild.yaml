@@ -16,7 +16,7 @@ steps:
   # Get K8S Repository.
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:alpine'
     entrypoint: 'git'
-    args: ['clone', 'git clone https://source.developers.google.com/p/gke-super-duper-test/r/github_adamotelecom_gke-test-objects']
+    args: ['clone', 'https://source.developers.google.com/p/gke-super-duper-test/r/github_adamotelecom_gke-test-objects']
 
   # deploy container image to GKE
   - name: "gcr.io/cloud-builders/gke-deploy"
