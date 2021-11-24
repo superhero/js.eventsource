@@ -67,16 +67,20 @@ class EventsourceClient
 
   /**
    * @param {string} domain
-   * @param {string} pid
-   * @param {boolean} [immutable]
+   * @param {string} pid process id
+   * @param {string} [from] timestamp
+   * @param {string} [to] timestamp
+   * @param {boolean} [immutable] if the returned colelction should be immutable or not
    */
-  async readEventlog(domain, pid, immutable)
+  async readEventlog(domain, pid, from, to, immutable)
   {
     try
     {
       const
         phKey     = this.mapper.toProcessHistoryKey(domain, pid),
-        history   = await this.redis.ordered.read(phKey),
+        scoreFrom = from  && this.mapper.toScore(from),
+        scoreTo   = to    && this.mapper.toScore(to),
+        history   = await this.redis.ordered.read(phKey, scoreFrom, scoreTo),
         channel   = this.mapper.toProcessEventQueuedChannel(),
         eventlog  = await Promise.all(history.map((id) => this.redis.stream.read(channel, id))),
         filtered  = eventlog.map((event) => this.mapper.toEntityProcess(event, immutable))
@@ -97,7 +101,7 @@ class EventsourceClient
     try
     {
       const
-        eventlog  = await this.readEventlog(domain, pid, false),
+        eventlog  = await this.readEventlog(domain, pid, null, null, false),
         state     = this.deepmerge.merge(...eventlog.map((event) => event.data))
 
       return state
