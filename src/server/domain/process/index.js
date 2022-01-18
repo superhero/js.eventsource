@@ -17,6 +17,9 @@ class Process
 
   async bootstrap()
   {
+    await this.redisPublisher.connection.connect()
+    await this.redisSubscriber.connection.connect()
+
     for(const channel of this.channels)
     {
       await this.redisSubscriber.pubsub.subscribe(channel, (dto) => this.eventbus.emit(channel, dto))
@@ -183,7 +186,6 @@ class Process
   {
     await this.redisPublisher.connection.quit()
     await this.redisSubscriber.connection.quit()
-    await this.redis.connection.quit()
   }
 }
 

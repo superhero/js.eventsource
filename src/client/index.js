@@ -14,6 +14,19 @@ class EventsourceClient
     this.console          = console
   }
 
+  async bootstrap()
+  {
+    await this.redisPublisher.connection.connect()
+    await this.redisSubscriber.connection.connect()
+  }
+
+  async quit()
+  {
+    await this.redis.connection.quit()
+    await this.redisPublisher.connection.quit()
+    await this.redisSubscriber.connection.quit()
+  }
+
   /**
    * @param {Eventsource.Schema.EntityProcess} input 
    * @param {boolean} [broadcast=true] 
@@ -312,20 +325,24 @@ class EventsourceClient
    */
   async consume(domain, name, consumer)
   {
-    const channel = this.mapper.toProcessPersistedChannel(domain, name)
-    await this.redis.stream.lazyloadConsumerGroup(channel, channel)
+    const subChannel = this.mapper.toProcessPersistedChannel(domain, name)
     let processing = false
-    const consumerId = await this.redisSubscriber.pubsub.subscribe(channel, async () =>
+    const consumerId = await this.redisSubscriber.pubsub.subscribe(subChannel, async (subDto) =>
     {
       if(!processing)
       {
         processing = true
         try
         {
-          while(await this.redis.stream.readGroup(channel, channel, async (_, dto) =>
+          const 
+            event     = await this.readEventById(subDto.id),
+            rgChannel = this.mapper.toProcessPersistedChannel(event.domain, event.name)
+
+          await this.redis.stream.lazyloadConsumerGroup(rgChannel, rgChannel)
+
+          while(await this.redis.stream.readGroup(rgChannel, rgChannel, async (_, rgDto) =>
           {
-            const event = await this.readEventById(dto.id)
-            await consumer(event, dto.id, consumerId)
+            await consumer(event, rgDto.id, consumerId)
           }));
         }
         catch(previousError)
@@ -382,13 +399,6 @@ class EventsourceClient
 
     await this.redis.stream.write(channel, error)
     await this.redisPublisher.pubsub.publish(channel)
-  }
-
-  async quit()
-  {
-    await this.redis.connection.quit()
-    await this.redisPublisher.connection.quit()
-    await this.redisSubscriber.connection.quit()
   }
 }
 

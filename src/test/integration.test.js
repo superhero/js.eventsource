@@ -23,16 +23,7 @@ describe('Eventsource test suit', () =>
 
     core.load(true)
 
-    core.locate('core/bootstrap').bootstrap().then(done)
-  })
-
-  after(() =>
-  {
-    setTimeout(async() =>
-    {
-      await core.locate('domain/process').quit()
-      await core.locate('eventsource/client').quit()
-    },2e3)
+    core.locate('core/bootstrap').bootstrap().then(done).catch((error) => core.locate('core/console').log(error))
   })
 
   const
@@ -48,6 +39,8 @@ describe('Eventsource test suit', () =>
   {
     context(this, { title:'process event', value:event })
   })
+
+  after(() => core.locate('eventsource/client').quit())
 
   it('consume when a domain event was persisted', function (done)
   {
