@@ -3,11 +3,12 @@
  */
 class EventsourceClientDomainLocator
 {
-  constructor(client, mapper, locator, console)
+  constructor(client, mapper, locator, string, console)
   {
     this.client   = client
     this.mapper   = mapper
     this.locator  = locator
+    this.string   = string
     this.console  = console
   }
   

@@ -274,26 +274,24 @@ class EventsourceClient
 
   async subscribe(domain, name, observer)
   {
-    const 
-      channel       = this.mapper.toProcessPersistedChannel(domain, name),
-      subscriberId  = await this.redisSubscriber.pubsub.subscribe(channel, async (dto) =>
+    const channel = this.mapper.toProcessPersistedChannel(domain, name)
+
+    await this.redisSubscriber.pubsub.subscribe(channel, async (dto) =>
+    {
+      try
       {
-        try
-        {
-          const event = await this.readEventById(dto.id)
-          await observer(event, dto.id, subscriberId)
-        }
-        catch(previousError)
-        {
-          const error = new Error('eventsource observer failed')
-          error.code  = 'E_EVENTSOURCE_PROCESS_OBSERVER'
-          error.chain = { previousError, domain, name }
+        const event = await this.readEventById(dto.id)
+        await observer(event, dto.id)
+      }
+      catch(previousError)
+      {
+        const error = new Error('eventsource observer failed')
+        error.code  = 'E_EVENTSOURCE_PROCESS_OBSERVER'
+        error.chain = { previousError, domain, name }
 
-          this.eventbus.emit('process-observer-error', error)
-        }
-      })
-
-    return subscriberId
+        this.eventbus.emit('process-observer-error', error)
+      }
+    })
   }
 
   async unsubscribe(domain, name, subscriberId)
@@ -327,22 +325,19 @@ class EventsourceClient
   {
     const subChannel = this.mapper.toProcessPersistedChannel(domain, name)
     let processing = false
-    const consumerId = await this.redisSubscriber.pubsub.subscribe(subChannel, async (subDto) =>
+    await this.redisSubscriber.pubsub.subscribe(subChannel, async (subDto, _, rgChannel) =>
     {
       if(!processing)
       {
         processing = true
         try
         {
-          const 
-            event     = await this.readEventById(subDto.id),
-            rgChannel = this.mapper.toProcessPersistedChannel(event.domain, event.name)
-
           await this.redis.stream.lazyloadConsumerGroup(rgChannel, rgChannel)
 
           while(await this.redis.stream.readGroup(rgChannel, rgChannel, async (_, rgDto) =>
           {
-            await consumer(event, rgDto.id, consumerId)
+            const event = await this.readEventById(rgDto.id)
+            await consumer(event, rgDto.id)
           }));
         }
         catch(previousError)
@@ -359,8 +354,6 @@ class EventsourceClient
         }
       }
     })
-
-    return consumerId
   }
 
   unconsume(domain, name, consumerId)

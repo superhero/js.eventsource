@@ -16,9 +16,10 @@ class EventsourceClientDomainLocatorLocator extends LocatorConstituent
     const
       client  = this.locator.locate('eventsource/client'),
       mapper  = this.locator.locate('eventsource/mapper'),
+      string  = this.locator.locate('core/string'),
       console = this.locator.locate('core/console')
 
-    return new EventsourceClientDomainLocator(client, mapper, this.locator, console)
+    return new EventsourceClientDomainLocator(client, mapper, this.locator, string, console)
   }
 }
 
