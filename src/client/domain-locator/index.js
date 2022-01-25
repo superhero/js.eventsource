@@ -43,7 +43,7 @@ class EventsourceClientDomainLocator
         {
           try
           {
-            await service.onError(event.pid, error)
+            await service.onError(event, error)
           }
           catch(error2)
           {
