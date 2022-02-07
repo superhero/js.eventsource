@@ -144,9 +144,18 @@ class Process
       throw error
     }
 
-    const ppChannel = this.mapper.toProcessPersistedChannel(domain, name)
-    await this.redis.stream.write(ppChannel, { id })
-    broadcast && this.redisPublisher.pubsub.publish(ppChannel, { id })
+    if(broadcast)
+    {
+      const 
+        ppChannel     = this.mapper.toProcessPersistedChannel(domain, name),
+        ppPidChannel  = this.mapper.toProcessPersistedPidChannel(domain, pid)
+
+      await this.redis.stream.write(ppChannel, { id })
+
+      this.redisPublisher.pubsub.publish(ppChannel,     { id })
+      this.redisPublisher.pubsub.publish(ppPidChannel,  { id })
+    }
+
     this.console.color('green').log(`✔ ${pid} → ${domain}/${name} → ${id}`)
   }
 

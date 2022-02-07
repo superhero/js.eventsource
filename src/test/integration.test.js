@@ -44,7 +44,7 @@ describe('Eventsource test suit', () =>
 
   it('consume when a domain event was persisted', function (done)
   {
-    const client  = core.locate('eventsource/client')
+    const client = core.locate('eventsource/client')
 
     client.consume(domain, name, (dto) =>
     {

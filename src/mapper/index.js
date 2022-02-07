@@ -61,14 +61,18 @@ class EventsourceMapper
   {
     domain = this.toSeperatedLowerCase(domain)
     name   = this.toSeperatedLowerCase(name)
-
     return `process-${domain}-${name}-persisted`
+  }
+
+  toProcessPersistedPidChannel(domain, pid)
+  {
+    domain = this.toSeperatedLowerCase(domain)
+    return `process-${domain}-${pid}-persisted-pid`
   }
 
   toProcessConsumerErrorChannel(domain)
   {
     domain = this.toSeperatedLowerCase(domain)
-
     return `process-${domain}-error`
   }
 

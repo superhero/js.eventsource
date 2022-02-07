@@ -3,6 +3,13 @@
  */
 module.exports =
 {
+  core:
+  {
+    bootstrap:
+    {
+      'eventsource/client/domain-locator' : false
+    }
+  },
   infrastructure:
   {
     mysql:

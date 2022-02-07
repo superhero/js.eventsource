@@ -287,23 +287,45 @@ class EventsourceClient
       {
         const error = new Error('eventsource observer failed')
         error.code  = 'E_EVENTSOURCE_PROCESS_OBSERVER'
-        error.chain = { previousError, domain, name }
+        error.chain = { previousError, domain, name, dto }
 
         this.eventbus.emit('process-observer-error', error)
       }
     })
   }
 
-  async unsubscribe(domain, name, subscriberId)
+  async unsubscribe(domain, name)
   {
     const channel = this.mapper.toProcessPersistedChannel(domain, name)
-    this.redisSubscriber.pubsub.unsubscribe(channel, subscriberId)
+    this.redisSubscriber.pubsub.unsubscribe(channel)
   }
 
-  async unsubscribeAll(domain, name)
+  async subscribeByPid(domain, pid, observer)
   {
-    const channel = this.mapper.toProcessPersistedChannel(domain, name)
-    this.redisSubscriber.pubsub.unsubscribeAll(channel)
+    const channel = this.mapper.toProcessPersistedPidChannel(domain, pid)
+
+    await this.redisSubscriber.pubsub.subscribe(channel, async (dto) =>
+    {
+      try
+      {
+        const event = await this.readEventById(dto.id)
+        await observer(event, dto.id)
+      }
+      catch(previousError)
+      {
+        const error = new Error('eventsource observer by pid failed')
+        error.code  = 'E_EVENTSOURCE_PROCESS_PID_OBSERVER'
+        error.chain = { previousError, domain, pid, dto }
+
+        this.eventbus.emit('process-observer-pid-error', error)
+      }
+    })
+  }
+
+  async unsubscribeByPid(domain, pid)
+  {
+    const channel = this.mapper.toProcessPersistedPidChannel(domain, pid)
+    this.redisSubscriber.pubsub.unsubscribe(channel)
   }
 
   fetchSubscriberIds(domain, name)

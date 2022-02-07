@@ -27,6 +27,8 @@ class EventsourceClientDomainLocator
         this.console.color('yellow').log(`eventsource - consume message failed - aggregate: "${event.domain}" `
                                        + `can not be located for observered event: "${event.name}", `
                                        + `pid: "${event.pid}"`)
+
+        return
       }
 
       const
@@ -45,11 +47,11 @@ class EventsourceClientDomainLocator
           {
             await service.onError(event, error)
           }
-          catch(error2)
+          catch(errorOnError)
           {
             this.console.color('red').log(`eventsource - consume error message failed - aggregate: "${event.domain}" `
                                         + `failed to handle error for channel: "${filteredChannel}", `
-                                        + `error: "${error2.message}", `
+                                        + `error: "${errorOnError.message}", `
                                         + `previous error: "${error.message}", `
                                         + `pid: "${event.pid}"`)
           }
