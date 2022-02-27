@@ -109,12 +109,12 @@ class EventsourceClient
     }
   }
 
-  async readState(domain, pid)
+  async readState(domain, pid, from=null, to=null, immutable=false)
   {
     try
     {
       const
-        eventlog  = await this.readEventlog(domain, pid, null, null, false),
+        eventlog  = await this.readEventlog(domain, pid, from, to, immutable),
         state     = this.deepmerge.merge(...eventlog.map((event) => event.data))
 
       return state
