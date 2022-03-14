@@ -27,6 +27,16 @@ class EventsourceClient
     await this.redisSubscriber.connection.quit()
   }
 
+  async auth(...args)
+  {
+    await Promise.all(
+    [
+      this.redis.connection.auth(...args),
+      this.redisPublisher.connection.auth(...args),
+      this.redisSubscriber.connection.auth(...args),
+    ])
+  }
+
   /**
    * @param {Eventsource.Schema.EntityProcess} input 
    * @param {boolean} [broadcast=true] 
