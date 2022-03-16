@@ -53,7 +53,7 @@ describe('Eventsource test suit', () =>
       return new Promise((accept) => setTimeout(accept, 500))
     }).then(() => 
     {
-      client.consume(domain, name, (dto) =>
+      return client.consume(domain, name, (dto) =>
       {
         context(this, { title:'dto', value:dto })
         expect(dto.pid).to.equal(pid)
