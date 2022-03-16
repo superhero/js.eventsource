@@ -106,7 +106,6 @@ class Process
       try
       {
         const channel = this.mapper.toProcessEventQueuedChannel()
-        await this.redis.stream.lazyloadConsumerGroup(channel, channel)
         while(await this.redis.stream.readGroup(channel, channel, this.persistProcess.bind(this)));
       }
       catch(error)
@@ -150,10 +149,10 @@ class Process
         ppChannel     = this.mapper.toProcessPersistedChannel(domain, name),
         ppPidChannel  = this.mapper.toProcessPersistedPidChannel(domain, pid)
 
+      await this.redis.stream.lazyloadConsumerGroup(ppChannel, ppChannel)
       await this.redis.stream.write(ppChannel, { id })
-
-      this.redisPublisher.pubsub.publish(ppChannel,     { id })
-      this.redisPublisher.pubsub.publish(ppPidChannel,  { id })
+      await this.redisPublisher.pubsub.publish(ppChannel,     { id })
+      await this.redisPublisher.pubsub.publish(ppPidChannel,  { id })
     }
 
     this.console.color('green').log(`✔ ${pid} → ${domain}/${name} → ${id}`)
@@ -162,6 +161,7 @@ class Process
   async onProcessError(error)
   {
     const channel = this.mapper.toProcessErrorQueuedChannel()
+    await this.redis.stream.lazyloadConsumerGroup(channel, channel)
     await this.redis.stream.write(channel, error)
     await this.redisPublisher.pubsub.publish(channel)
   }
@@ -169,7 +169,6 @@ class Process
   async onProcessErrorQueued()
   {
     const channel = this.mapper.toProcessErrorQueuedChannel()
-    await this.redis.stream.lazyloadConsumerGroup(channel, channel)
     const error = await this.redis.stream.readGroup(channel, channel)
 
     error && this.console.error(channel, error)
@@ -178,6 +177,7 @@ class Process
   async onScheduleError(error)
   {
     const channel = this.mapper.toProcessErrorScheduledChannel()
+    await this.redis.stream.lazyloadConsumerGroup(channel, channel)
     await this.redis.stream.write(channel, error)
     await this.redisPublisher.pubsub.publish(channel)
   }
@@ -185,7 +185,6 @@ class Process
   async onProcessErrorScheduled()
   {
     const channel = this.mapper.toProcessErrorScheduledChannel()
-    await this.redis.stream.lazyloadConsumerGroup(channel, channel)
     const error = await this.redis.stream.readGroup(channel, channel)
 
     error && this.console.error(channel, error)

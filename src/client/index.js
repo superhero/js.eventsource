@@ -47,8 +47,10 @@ class EventsourceClient
     {
       const
         channel   = this.mapper.toProcessEventQueuedChannel(),
-        process   = this.mapper.toEntityProcess(input),
-        response  = await this.redis.stream.write(channel, { ...process, broadcast })
+        process   = this.mapper.toEntityProcess(input)
+
+      await this.redis.stream.lazyloadConsumerGroup(channel, channel)
+      const response = await this.redis.stream.write(channel, { ...process, broadcast })
 
       this.redisPublisher.pubsub.publish(channel)
 
@@ -364,8 +366,6 @@ class EventsourceClient
         processing = true
         try
         {
-          await this.redis.stream.lazyloadConsumerGroup(rgChannel, rgChannel)
-
           while(await this.redis.stream.readGroup(rgChannel, rgChannel, async (_, rgDto) =>
           {
             const event = await this.readEventById(rgDto.id)
