@@ -30,28 +30,21 @@ class Process
 
   async bootstrapProcessSchedule()
   {
-    console.log('...1')
     const
       scheduledKey  = this.mapper.toProcessEventScheduledKey(),
       minimum       = true,
       timestamp     = await this.redis.ordered.readScore(scheduledKey, minimum)
-
-    console.log('...2')
 
     timestamp && this.onProcessEventScheduled(timestamp)
   }
 
   onProcessEventScheduled(timestamp)
   {
-    console.log('...3')
-
     const timeout = new Date(timestamp).getTime() - Date.now()
     this.timeout = Math.min(timeout, this.timeout || timeout)
-    console.log('...4')
     clearTimeout(this.timeoutId)
     this.timeoutId = setTimeout(async () =>
     {
-      console.log('...5')
       await this.persistTimedoutScheduledProcesses()
       await this.bootstrapProcessSchedule()
     },
@@ -79,9 +72,9 @@ class Process
         try
         {
           const process = this.mapper.toEntityProcess(input)
-          await session.stream.write(queueChannel, process)
-  
-          this.redisPublisher.pubsub.publish(queueChannel)
+          session.stream.lazyloadConsumerGroup(queueChannel, queueChannel)
+          session.stream.write(queueChannel, process)
+          session.pubsub.publish(queueChannel)
 
           this.console.color('cyan').log(`✔ ${process.pid} → ${process.domain}/${process.name} → scheduled event queued`)
         }

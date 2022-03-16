@@ -40,7 +40,7 @@ describe('Eventsource test suit', () =>
     context(this, { title:'process event', value:event })
   })
 
-  after(() => core.locate('eventsource/client').quit())
+  // after(() => setTimeout(() => core.locate('eventsource/client').quit()), 5e3)
 
   it('consume when a domain event was persisted', function (done)
   {
@@ -146,7 +146,7 @@ describe('Eventsource test suit', () =>
       scheduledPid  = pid   + '-scheduled',
       scheduledName = name  + '-scheduled',
       timestamp     = Date.now() + 250
-
+    
     client.consume(domain, scheduledName, (dto) =>
     {
       context(this, { title:'dto', value:dto })
