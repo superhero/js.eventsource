@@ -30,21 +30,28 @@ class Process
 
   async bootstrapProcessSchedule()
   {
+    console.log('...1')
     const
       scheduledKey  = this.mapper.toProcessEventScheduledKey(),
       minimum       = true,
       timestamp     = await this.redis.ordered.readScore(scheduledKey, minimum)
+
+    console.log('...2')
 
     timestamp && this.onProcessEventScheduled(timestamp)
   }
 
   onProcessEventScheduled(timestamp)
   {
+    console.log('...3')
+
     const timeout = new Date(timestamp).getTime() - Date.now()
     this.timeout = Math.min(timeout, this.timeout || timeout)
+    console.log('...4')
     clearTimeout(this.timeoutId)
     this.timeoutId = setTimeout(async () =>
     {
+      console.log('...5')
       await this.persistTimedoutScheduledProcesses()
       await this.bootstrapProcessSchedule()
     },
