@@ -31,9 +31,9 @@ class EventsourceClient
   {
     await Promise.all(
     [
-      this.redis.connection.auth(...args),
-      this.redisPublisher.connection.auth(...args),
-      this.redisSubscriber.connection.auth(...args),
+      this.redis.gateway.cmd('AUTH', ...args),
+      this.redisPublisher.gateway.cmd('AUTH', ...args),
+      this.redisSubscriber.gateway.cmd('AUTH', ...args)
     ])
   }
 
