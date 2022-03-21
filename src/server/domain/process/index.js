@@ -4,7 +4,7 @@
  */
 class Process
 {
-  constructor(redis, publisher, subscriber, mapper, eventbus, console, channels)
+  constructor(redis, publisher, subscriber, mapper, eventbus, console, channels, authKey)
   {
     this.redis            = redis
     this.redisPublisher   = publisher
@@ -13,12 +13,20 @@ class Process
     this.eventbus         = eventbus
     this.console          = console
     this.channels         = channels
+    this.authKey          = authKey
   }
 
   async bootstrap()
   {
     await this.redisPublisher.connection.connect()
     await this.redisSubscriber.connection.connect()
+
+    if(this.authKey)
+    {
+      await this.redis.gateway.cmd('AUTH', this.authKey)
+      await this.redisPublisher.gateway.cmd('AUTH', this.authKey)
+      await this.redisSubscriber.gateway.cmd('AUTH', this.authKey)
+    }
 
     for(const channel of this.channels)
     {

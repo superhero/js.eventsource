@@ -21,9 +21,10 @@ class ProcessLocator extends LocatorConstituent
       eventbus      = this.locator.locate('core/eventbus'),
       console       = this.locator.locate('core/console'),
       configuration = this.locator.locate('core/configuration'),
-      channels      = configuration.find('domain/process/channels')
+      channels      = configuration.find('domain/process/channels'),
+      authKey       = configuration.find('client/redis/auth')
 
-    return new Process(redis, publisher, subscriber, mapper, eventbus, console, channels)
+    return new Process(redis, publisher, subscriber, mapper, eventbus, console, channels, authKey)
   }
 }
 

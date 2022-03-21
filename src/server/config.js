@@ -43,7 +43,8 @@ module.exports =
   {
     redis:
     {
-      gateway:
+      auth    : process.env.REDIS_AUTH,
+      gateway :
       {
         url: `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`
       }
