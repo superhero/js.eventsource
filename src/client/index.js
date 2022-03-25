@@ -16,10 +16,11 @@ class EventsourceClient
 
   async bootstrap()
   {
+    await this.redis.connection.connect()
     await this.redisPublisher.connection.connect()
     await this.redisSubscriber.connection.connect()
     
-    this.console.color('cyan').log('✔ eventsource client connected "pubsub" sockets')
+    this.console.color('cyan').log('✔ eventsource client sockets connected')
   }
 
   async quit()
@@ -29,18 +30,6 @@ class EventsourceClient
     await this.redisSubscriber.connection.quit()
     
     this.console.color('cyan').log('✔ eventsource client closed all sockets')
-  }
-
-  async auth(...args)
-  {
-    await Promise.all(
-    [
-      this.redis.gateway.cmd('AUTH', ...args),
-      this.redisPublisher.gateway.cmd('AUTH', ...args),
-      this.redisSubscriber.gateway.cmd('AUTH', ...args)
-    ])
-
-    this.console.color('cyan').log('✔ eventsource client authenticated all sockets')
   }
 
   /**
