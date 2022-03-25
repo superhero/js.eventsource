@@ -21,11 +21,19 @@ class Process
     await this.redisPublisher.connection.connect()
     await this.redisSubscriber.connection.connect()
 
+    this.console.color('cyan').log('✔ eventsource connected "pubsub" sockets')
+
     if(this.authKey)
     {
       await this.redis.gateway.cmd('AUTH', this.authKey)
       await this.redisPublisher.gateway.cmd('AUTH', this.authKey)
       await this.redisSubscriber.gateway.cmd('AUTH', this.authKey)
+
+      this.console.color('cyan').log('✔ eventsource authenticated all sockets')
+    }
+    else
+    {
+      this.console.color('yellow').log('- eventsource has no authentication key configured')
     }
 
     for(const channel of this.channels)
