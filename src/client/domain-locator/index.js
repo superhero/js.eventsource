@@ -14,6 +14,7 @@ class EventsourceClientDomainLocator
   
   async bootstrap()
   {
+    this.console.color('cyan').log('✔ eventsource client is configured to consume all domains and events')
     await this.client.consume('*', '*', async (event, ...args) =>
     {
       let service
