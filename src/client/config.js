@@ -23,5 +23,13 @@ module.exports =
         'process-observer-error' : { 'eventsource/client':true }
       }
     }
+  },
+  client:
+  {
+    eventsource:
+    {
+      domain  : '*',
+      name    : '*'
+    }
   }
 }

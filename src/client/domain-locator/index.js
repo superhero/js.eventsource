@@ -3,8 +3,9 @@
  */
 class EventsourceClientDomainLocator
 {
-  constructor(client, mapper, locator, string, console)
+  constructor(config, client, mapper, locator, string, console)
   {
+    this.config   = config
     this.client   = client
     this.mapper   = mapper
     this.locator  = locator
@@ -15,7 +16,7 @@ class EventsourceClientDomainLocator
   async bootstrap()
   {
     this.console.color('cyan').log('✔ eventsource client is configured to consume all domains and events')
-    await this.client.consume('*', '*', async (event, ...args) =>
+    await this.client.consume(this.config.domain, this.config.name, async (event, ...args) =>
     {
       let service
 
