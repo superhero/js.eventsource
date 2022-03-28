@@ -20,7 +20,7 @@ class EventsourceClient
     await this.redisPublisher.connection.connect()
     await this.redisSubscriber.connection.connect()
     
-    this.console.color('cyan').log('✔ eventsource client sockets connected')
+    this.console.color('green').log('✔ eventsource client sockets connected')
   }
 
   async quit()
@@ -29,7 +29,7 @@ class EventsourceClient
     await this.redisPublisher.connection.quit()
     await this.redisSubscriber.connection.quit()
     
-    this.console.color('cyan').log('✔ eventsource client closed all sockets')
+    this.console.color('green').log('✔ eventsource client closed all sockets')
   }
 
   /**
