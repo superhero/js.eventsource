@@ -10,7 +10,7 @@ module.exports =
       'eventsource/client'                : 'eventsource/client',
       'eventsource/client/domain-locator' : 'eventsource/client/domain-locator'
     },
-    component:
+    dependency:
     {
       'client/redis'        : '@superhero/core.redis/src/client',
       'eventsource/mapper'  : __dirname + '/../mapper',

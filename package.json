@@ -1,6 +1,6 @@
 {
   "name": "@superhero/core.eventsource",
-  "version": "2.2.9",
+  "version": "2.2.10",
   "description": "A solution for an eventsource implementation",
   "repository": "git@github.com:superhero/js.eventsource.git",
   "license": "MIT",
@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@superhero/core.redis": "2.2.0",
-    "superhero": "2.11.1"
+    "superhero": "2.11.3"
   },
   "devDependencies": {
     "chai": "4.3.0",
