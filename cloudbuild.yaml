@@ -1,0 +1,28 @@
+steps:
+  # Docker Build
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 
+           'europe-west1-docker.pkg.dev/${PROJECT_ID}/pkg-super-duper-test/eventsource:$SHORT_SHA', 
+           '-t', 
+           'europe-west1-docker.pkg.dev/${PROJECT_ID}/pkg-super-duper-test/eventsource:latest',
+           '.']
+
+  # Docker Push
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'europe-west1-docker.pkg.dev/${PROJECT_ID}/pkg-super-duper-test/eventsource:$SHORT_SHA']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'europe-west1-docker.pkg.dev/${PROJECT_ID}/pkg-super-duper-test/eventsource:latest']
+
+  # Get K8S Repository.
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:alpine'
+    entrypoint: 'git'
+    args: ['clone', 'https://source.developers.google.com/p/gke-super-duper-test/r/github_adamotelecom_gke-test-objects']
+
+  # deploy container image to GKE
+  - name: "gcr.io/cloud-builders/gke-deploy"
+    args:
+    - run
+    - --filename=github_adamotelecom_gke-test-objects/eventsource.yaml
+    - --image=europe-west1-docker.pkg.dev/${PROJECT_ID}/pkg-super-duper-test/eventsource:$SHORT_SHA
+    - --location=europe-west1-b
+    - --cluster=gke-super-duper-test
