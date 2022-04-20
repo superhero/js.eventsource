@@ -25,9 +25,8 @@ class Process
 
     if(this.authKey)
     {
-      await this.redis.gateway.cmd('AUTH', this.authKey)
-      await this.redisPublisher.gateway.cmd('AUTH', this.authKey)
-      await this.redisSubscriber.gateway.cmd('AUTH', this.authKey)
+      await this.redisPublisher.auth()
+      await this.redisSubscriber.auth()
 
       this.console.color('cyan').log('✔ eventsource authenticated all sockets')
     }
