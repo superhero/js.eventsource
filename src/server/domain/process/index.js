@@ -4,7 +4,7 @@
  */
 class Process
 {
-  constructor(redis, publisher, subscriber, mapper, eventbus, console, channels)
+  constructor(redis, publisher, subscriber, mapper, eventbus, console, channels, authKey)
   {
     this.redis            = redis
     this.redisPublisher   = publisher
@@ -13,10 +13,29 @@ class Process
     this.eventbus         = eventbus
     this.console          = console
     this.channels         = channels
+    this.authKey          = authKey
   }
 
   async bootstrap()
   {
+    await this.redisPublisher.connection.connect()
+    await this.redisSubscriber.connection.connect()
+
+    this.console.color('cyan').log('✔ eventsource connected "pubsub" sockets')
+
+    if(this.authKey)
+    {
+      await this.redis.gateway.cmd('AUTH', this.authKey)
+      await this.redisPublisher.gateway.cmd('AUTH', this.authKey)
+      await this.redisSubscriber.gateway.cmd('AUTH', this.authKey)
+
+      this.console.color('cyan').log('✔ eventsource authenticated all sockets')
+    }
+    else
+    {
+      this.console.color('yellow').log('- eventsource has no authentication key configured')
+    }
+
     for(const channel of this.channels)
     {
       await this.redisSubscriber.pubsub.subscribe(channel, (dto) => this.eventbus.emit(channel, dto))
@@ -69,9 +88,9 @@ class Process
         try
         {
           const process = this.mapper.toEntityProcess(input)
-          await session.stream.write(queueChannel, process)
-  
-          this.redisPublisher.pubsub.publish(queueChannel)
+          session.stream.lazyloadConsumerGroup(queueChannel, queueChannel)
+          session.stream.write(queueChannel, process)
+          session.pubsub.publish(queueChannel)
 
           this.console.color('cyan').log(`✔ ${process.pid} → ${process.domain}/${process.name} → scheduled event queued`)
         }
@@ -103,7 +122,6 @@ class Process
       try
       {
         const channel = this.mapper.toProcessEventQueuedChannel()
-        await this.redis.stream.lazyloadConsumerGroup(channel, channel)
         while(await this.redis.stream.readGroup(channel, channel, this.persistProcess.bind(this)));
       }
       catch(error)
@@ -141,15 +159,25 @@ class Process
       throw error
     }
 
-    const ppChannel = this.mapper.toProcessPersistedChannel(domain, name)
-    await this.redis.stream.write(ppChannel, { id })
-    broadcast && this.redisPublisher.pubsub.publish(ppChannel, { id })
+    if(broadcast)
+    {
+      const 
+        ppChannel     = this.mapper.toProcessPersistedChannel(domain, name),
+        ppPidChannel  = this.mapper.toProcessPersistedPidChannel(domain, pid)
+
+      await this.redis.stream.lazyloadConsumerGroup(ppChannel, ppChannel)
+      await this.redis.stream.write(ppChannel, { id })
+      await this.redisPublisher.pubsub.publish(ppChannel,     { id })
+      await this.redisPublisher.pubsub.publish(ppPidChannel,  { id })
+    }
+
     this.console.color('green').log(`✔ ${pid} → ${domain}/${name} → ${id}`)
   }
 
   async onProcessError(error)
   {
     const channel = this.mapper.toProcessErrorQueuedChannel()
+    await this.redis.stream.lazyloadConsumerGroup(channel, channel)
     await this.redis.stream.write(channel, error)
     await this.redisPublisher.pubsub.publish(channel)
   }
@@ -157,7 +185,6 @@ class Process
   async onProcessErrorQueued()
   {
     const channel = this.mapper.toProcessErrorQueuedChannel()
-    await this.redis.stream.lazyloadConsumerGroup(channel, channel)
     const error = await this.redis.stream.readGroup(channel, channel)
 
     error && this.console.error(channel, error)
@@ -166,6 +193,7 @@ class Process
   async onScheduleError(error)
   {
     const channel = this.mapper.toProcessErrorScheduledChannel()
+    await this.redis.stream.lazyloadConsumerGroup(channel, channel)
     await this.redis.stream.write(channel, error)
     await this.redisPublisher.pubsub.publish(channel)
   }
@@ -173,7 +201,6 @@ class Process
   async onProcessErrorScheduled()
   {
     const channel = this.mapper.toProcessErrorScheduledChannel()
-    await this.redis.stream.lazyloadConsumerGroup(channel, channel)
     const error = await this.redis.stream.readGroup(channel, channel)
 
     error && this.console.error(channel, error)
@@ -183,7 +210,6 @@ class Process
   {
     await this.redisPublisher.connection.quit()
     await this.redisSubscriber.connection.quit()
-    await this.redis.connection.quit()
   }
 }
 

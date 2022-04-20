@@ -14,6 +14,24 @@ class EventsourceClient
     this.console          = console
   }
 
+  async bootstrap()
+  {
+    await this.redis.connection.connect()
+    await this.redisPublisher.connection.connect()
+    await this.redisSubscriber.connection.connect()
+    
+    this.console.color('green').log('✔ eventsource client sockets connected')
+  }
+
+  async quit()
+  {
+    await this.redis.connection.quit()
+    await this.redisPublisher.connection.quit()
+    await this.redisSubscriber.connection.quit()
+    
+    this.console.color('green').log('✔ eventsource client closed all sockets')
+  }
+
   /**
    * @param {Eventsource.Schema.EntityProcess} input 
    * @param {boolean} [broadcast=true] 
@@ -24,8 +42,10 @@ class EventsourceClient
     {
       const
         channel   = this.mapper.toProcessEventQueuedChannel(),
-        process   = this.mapper.toEntityProcess(input),
-        response  = await this.redis.stream.write(channel, { ...process, broadcast })
+        process   = this.mapper.toEntityProcess(input)
+
+      await this.redis.stream.lazyloadConsumerGroup(channel, channel)
+      const response = await this.redis.stream.write(channel, { ...process, broadcast })
 
       this.redisPublisher.pubsub.publish(channel)
 
@@ -96,12 +116,12 @@ class EventsourceClient
     }
   }
 
-  async readState(domain, pid)
+  async readState(domain, pid, from=null, to=null, immutable=false)
   {
     try
     {
       const
-        eventlog  = await this.readEventlog(domain, pid, null, null, false),
+        eventlog  = await this.readEventlog(domain, pid, from, to, immutable),
         state     = this.deepmerge.merge(...eventlog.map((event) => event.data))
 
       return state
@@ -261,38 +281,58 @@ class EventsourceClient
 
   async subscribe(domain, name, observer)
   {
-    const 
-      channel       = this.mapper.toProcessPersistedChannel(domain, name),
-      subscriberId  = await this.redisSubscriber.pubsub.subscribe(channel, async (dto) =>
+    const channel = this.mapper.toProcessPersistedChannel(domain, name)
+
+    await this.redisSubscriber.pubsub.subscribe(channel, async (dto) =>
+    {
+      try
       {
-        try
-        {
-          const event = await this.readEventById(dto.id)
-          await observer(event, dto.id, subscriberId)
-        }
-        catch(previousError)
-        {
-          const error = new Error('eventsource observer failed')
-          error.code  = 'E_EVENTSOURCE_PROCESS_OBSERVER'
-          error.chain = { previousError, domain, name }
+        const event = await this.readEventById(dto.id)
+        await observer(event, dto.id)
+      }
+      catch(previousError)
+      {
+        const error = new Error('eventsource observer failed')
+        error.code  = 'E_EVENTSOURCE_PROCESS_OBSERVER'
+        error.chain = { previousError, domain, name, dto }
 
-          this.eventbus.emit('process-observer-error', error)
-        }
-      })
-
-    return subscriberId
+        this.eventbus.emit('process-observer-error', error)
+      }
+    })
   }
 
-  async unsubscribe(domain, name, subscriberId)
+  async unsubscribe(domain, name)
   {
     const channel = this.mapper.toProcessPersistedChannel(domain, name)
-    this.redisSubscriber.pubsub.unsubscribe(channel, subscriberId)
+    this.redisSubscriber.pubsub.unsubscribe(channel)
   }
 
-  async unsubscribeAll(domain, name)
+  async subscribeByPid(domain, pid, observer)
   {
-    const channel = this.mapper.toProcessPersistedChannel(domain, name)
-    this.redisSubscriber.pubsub.unsubscribeAll(channel)
+    const channel = this.mapper.toProcessPersistedPidChannel(domain, pid)
+
+    await this.redisSubscriber.pubsub.subscribe(channel, async (dto) =>
+    {
+      try
+      {
+        const event = await this.readEventById(dto.id)
+        await observer(event, dto.id)
+      }
+      catch(previousError)
+      {
+        const error = new Error('eventsource observer by pid failed')
+        error.code  = 'E_EVENTSOURCE_PROCESS_PID_OBSERVER'
+        error.chain = { previousError, domain, pid, dto }
+
+        this.eventbus.emit('process-observer-pid-error', error)
+      }
+    })
+  }
+
+  async unsubscribeByPid(domain, pid)
+  {
+    const channel = this.mapper.toProcessPersistedPidChannel(domain, pid)
+    this.redisSubscriber.pubsub.unsubscribe(channel)
   }
 
   fetchSubscriberIds(domain, name)
@@ -312,20 +352,19 @@ class EventsourceClient
    */
   async consume(domain, name, consumer)
   {
-    const channel = this.mapper.toProcessPersistedChannel(domain, name)
-    await this.redis.stream.lazyloadConsumerGroup(channel, channel)
+    const subChannel = this.mapper.toProcessPersistedChannel(domain, name)
     let processing = false
-    const consumerId = await this.redisSubscriber.pubsub.subscribe(channel, async () =>
+    await this.redisSubscriber.pubsub.subscribe(subChannel, async (subDto, _, rgChannel) =>
     {
       if(!processing)
       {
         processing = true
         try
         {
-          while(await this.redis.stream.readGroup(channel, channel, async (_, dto) =>
+          while(await this.redis.stream.readGroup(rgChannel, rgChannel, async (_, rgDto) =>
           {
-            const event = await this.readEventById(dto.id)
-            await consumer(event, dto.id, consumerId)
+            const event = await this.readEventById(rgDto.id)
+            await consumer(event, rgDto.id)
           }));
         }
         catch(previousError)
@@ -342,8 +381,6 @@ class EventsourceClient
         }
       }
     })
-
-    return consumerId
   }
 
   unconsume(domain, name, consumerId)
@@ -382,13 +419,6 @@ class EventsourceClient
 
     await this.redis.stream.write(channel, error)
     await this.redisPublisher.pubsub.publish(channel)
-  }
-
-  async quit()
-  {
-    await this.redis.connection.quit()
-    await this.redisPublisher.connection.quit()
-    await this.redisSubscriber.connection.quit()
   }
 }
 

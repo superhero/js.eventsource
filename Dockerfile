@@ -1,4 +1,4 @@
-FROM node:12.4-stretch-slim
+FROM node:17-bullseye
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV HTTP_PORT 80

@@ -27,13 +27,13 @@ class EventsourceMapper
 
   toProcessStateKey(domain, pid)
   {
-    domain = this.string.composeSeperatedLowerCase(domain)
+    domain = this.toSeperatedLowerCase(domain)
     return `ps:${domain}:${pid}`
   }
 
   toProcessHistoryKey(domain, pid)
   {
-    domain = this.string.composeSeperatedLowerCase(domain)
+    domain = this.toSeperatedLowerCase(domain)
     return `ph:${domain}:${pid}`
   }
 
@@ -59,17 +59,26 @@ class EventsourceMapper
 
   toProcessPersistedChannel(domain, name)
   {
-    domain = this.string.composeSeperatedLowerCase(domain)
-    name   = this.string.composeSeperatedLowerCase(name)
-
+    domain = this.toSeperatedLowerCase(domain)
+    name   = this.toSeperatedLowerCase(name)
     return `process-${domain}-${name}-persisted`
+  }
+
+  toProcessPersistedPidChannel(domain, pid)
+  {
+    domain = this.toSeperatedLowerCase(domain)
+    return `process-${domain}-${pid}-persisted-pid`
   }
 
   toProcessConsumerErrorChannel(domain)
   {
-    domain = this.string.composeSeperatedLowerCase(domain)
-
+    domain = this.toSeperatedLowerCase(domain)
     return `process-${domain}-error`
+  }
+
+  toSeperatedLowerCase(s)
+  {
+    return s.replace(/(?:(?!\*)(?![\w]).)+/g, '-').toLowerCase()
   }
 }
 

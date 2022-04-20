@@ -23,16 +23,7 @@ describe('Eventsource test suit', () =>
 
     core.load(true)
 
-    core.locate('core/bootstrap').bootstrap().then(done)
-  })
-
-  after(() =>
-  {
-    setTimeout(async() =>
-    {
-      await core.locate('domain/process').quit()
-      await core.locate('eventsource/client').quit()
-    },2e3)
+    core.locate('core/bootstrap').bootstrap().then(done).catch((error) => core.locate('core/console').log(error))
   })
 
   const
@@ -49,9 +40,11 @@ describe('Eventsource test suit', () =>
     context(this, { title:'process event', value:event })
   })
 
+  // after(() => setTimeout(() => core.locate('eventsource/client').quit()), 5e3)
+
   it('consume when a domain event was persisted', function (done)
   {
-    const client  = core.locate('eventsource/client')
+    const client = core.locate('eventsource/client')
 
     client.consume(domain, name, (dto) =>
     {
@@ -60,7 +53,7 @@ describe('Eventsource test suit', () =>
       return new Promise((accept) => setTimeout(accept, 500))
     }).then(() => 
     {
-      client.consume(domain, name, (dto) =>
+      return client.consume(domain, name, (dto) =>
       {
         context(this, { title:'dto', value:dto })
         expect(dto.pid).to.equal(pid)
@@ -153,7 +146,7 @@ describe('Eventsource test suit', () =>
       scheduledPid  = pid   + '-scheduled',
       scheduledName = name  + '-scheduled',
       timestamp     = Date.now() + 250
-
+    
     client.consume(domain, scheduledName, (dto) =>
     {
       context(this, { title:'dto', value:dto })

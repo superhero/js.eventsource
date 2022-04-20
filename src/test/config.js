@@ -3,6 +3,13 @@
  */
 module.exports =
 {
+  core:
+  {
+    bootstrap:
+    {
+      'eventsource/client/domain-locator' : false
+    }
+  },
   infrastructure:
   {
     mysql:
@@ -27,8 +34,7 @@ module.exports =
     {
       gateway:
       {
-        host: '127.0.0.1',
-        port: '6379'
+        url: 'redis://127.0.0.1:6379'
       }
     }
   }
