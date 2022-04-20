@@ -20,7 +20,10 @@ class EventsourceClient
     await this.redisPublisher.connection.connect()
     await this.redisSubscriber.connection.connect()
     
-    this.console.color('green').log('✔ eventsource client sockets connected')
+    this.console.color('green').log('✔ eventsource redis client sockets connected')
+    
+    await this.redisPublisher.auth()
+    await this.redisSubscriber.auth()
   }
 
   async quit()
