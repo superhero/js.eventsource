@@ -37,7 +37,11 @@ class Process
 
     for(const channel of this.channels)
     {
-      await this.redisSubscriber.pubsub.subscribe(channel, (dto) => this.eventbus.emit(channel, dto))
+      await this.redisSubscriber.pubsub.subscribe(channel, (dto) => 
+      {
+        this.console.log('...redisSubscriber.pubsub.subscribe')
+        this.eventbus.emit(channel, dto)
+      })
     }
 
     await this.bootstrapProcessSchedule()
@@ -50,16 +54,21 @@ class Process
       minimum       = true,
       timestamp     = await this.redis.ordered.readScore(scheduledKey, minimum)
 
+    this.console.log('...bootstrapProcessSchedule', timestamp)
+
     timestamp && this.onProcessEventScheduled(timestamp)
   }
 
   onProcessEventScheduled(timestamp)
   {
+    this.console.log('...onProcessEventScheduled')
     const timeout = new Date(timestamp).getTime() - Date.now()
     this.timeout = Math.min(timeout, this.timeout || timeout)
+    this.console.log('...timeout', this.timeout, timeout, this.timeout > timeout)
     clearTimeout(this.timeoutId)
     this.timeoutId = setTimeout(async () =>
     {
+      this.console.log('...setTimeout')
       delete this.timeout
       await this.persistTimedoutScheduledProcesses()
       await this.bootstrapProcessSchedule()
@@ -105,6 +114,7 @@ class Process
           }
         }
     
+        this.console.log('...session.ordered.delete', now)
         await session.ordered.delete(scheduledKey, 0, now)
         await session.transaction.commit()
       }
