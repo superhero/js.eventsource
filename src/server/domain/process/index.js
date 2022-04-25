@@ -55,11 +55,12 @@ class Process
 
   onProcessEventScheduled(timestamp)
   {
-    this.timeout = new Date(timestamp).getTime() - Date.now()
-    this.timeout = Math.max(0, this.timeout)
+    const timeout = new Date(timestamp).getTime() - Date.now()
+    this.timeout = Math.min(timeout, this.timeout || timeout)
     clearTimeout(this.timeoutId)
     this.timeoutId = setTimeout(async () =>
     {
+      delete this.timeout
       await this.persistTimedoutScheduledProcesses()
       await this.bootstrapProcessSchedule()
     },
