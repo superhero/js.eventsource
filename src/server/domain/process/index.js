@@ -94,7 +94,7 @@ class Process
           try
           {
             const process = this.mapper.toEntityProcess(input)
-            session.stream.lazyloadConsumerGroup(queueChannel, queueChannel)
+            await this.redis.stream.lazyloadConsumerGroup(queueChannel, queueChannel)
             session.stream.write(queueChannel, process)
             session.pubsub.publish(queueChannel)
 
@@ -106,6 +106,7 @@ class Process
           }
         }
     
+        this.console.log('delete scheduledKey', scheduledKey, now)
         await session.ordered.delete(scheduledKey, 0, now)
         await session.transaction.commit()
       }
