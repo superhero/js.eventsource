@@ -60,6 +60,7 @@ class Process
     const timeout = new Date(timestamp).getTime() - Date.now()
     this.timeout = Math.min(timeout, this.timeout || timeout)
     this.console.log('timeout', timeout)
+    this.console.log('this.timeout', this.timeout)
     clearTimeout(this.timeoutId)
     this.timeoutId = setTimeout(async () =>
     {
