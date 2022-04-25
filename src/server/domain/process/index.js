@@ -55,12 +55,23 @@ class Process
 
   onProcessEventScheduled(timestamp)
   {
-    this.timeout = Math.min(this.timeout, new Date(timestamp).getTime())
-    const timeout = Math.max(0, this.timeout - Date.now())
+    timestamp = new Date(timestamp).getTime()
+
+    if(this.timestamp
+    && this.timestamp < timestamp)
+    {
+      this.console.color('yellow').log(`- queue is already in line`)
+      return
+    }
+
+    this.console.color('green').log(`✔ updating queue`)
+
+    this.timestamp = timestamp
+    const timeout = Math.max(0, this.timestamp - Date.now())
     clearTimeout(this.timeoutId)
     this.timeoutId = setTimeout(async () =>
     {
-      delete this.timeout
+      delete this.timestamp
       await this.persistTimedoutScheduledProcesses()
       await this.bootstrapProcessSchedule()
     },
