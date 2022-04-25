@@ -50,17 +50,13 @@ class Process
       minimum       = true,
       timestamp     = await this.redis.ordered.readScore(scheduledKey, minimum)
 
-    this.console.log('timestamp', timestamp)
-
     timestamp && this.onProcessEventScheduled(timestamp)
   }
 
   onProcessEventScheduled(timestamp)
   {
-    const timeout = new Date(timestamp).getTime() - Date.now()
-    this.timeout = Math.min(timeout, this.timeout || timeout)
-    this.console.log('timeout', timeout)
-    this.console.log('this.timeout', this.timeout)
+    this.timeout = new Date(timestamp).getTime() - Date.now()
+    this.timeout = Math.max(0, this.timeout)
     clearTimeout(this.timeoutId)
     this.timeoutId = setTimeout(async () =>
     {
@@ -108,7 +104,6 @@ class Process
           }
         }
     
-        this.console.log('delete scheduledKey', scheduledKey, now)
         await session.ordered.delete(scheduledKey, 0, now)
         await session.transaction.commit()
       }
