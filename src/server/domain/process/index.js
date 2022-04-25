@@ -50,6 +50,8 @@ class Process
       minimum       = true,
       timestamp     = await this.redis.ordered.readScore(scheduledKey, minimum)
 
+    this.console.log('timestamp', timestamp)
+
     timestamp && this.onProcessEventScheduled(timestamp)
   }
 
