@@ -75,36 +75,46 @@ class Process
 
     try
     {
-      await session.transaction.watch(scheduledKey)
-      await session.transaction.begin()
-  
-      const 
-        now   = Date.now(),
-        list  = await this.redis.ordered.read(scheduledKey, 0, now)
-  
-      for(const input of list)
-      {
-        try
-        {
-          const process = this.mapper.toEntityProcess(input)
-          session.stream.lazyloadConsumerGroup(queueChannel, queueChannel)
-          session.stream.write(queueChannel, process)
-          session.pubsub.publish(queueChannel)
+      await session.connection.connect()
+      await session.auth()
 
-          this.console.color('cyan').log(`✔ ${process.pid} → ${process.domain}/${process.name} → scheduled event queued`)
-        }
-        catch(error)
+      try
+      {
+        await session.transaction.watch(scheduledKey)
+        await session.transaction.begin()
+    
+        const
+          now   = Date.now(),
+          list  = await this.redis.ordered.read(scheduledKey, 0, now)
+    
+        for(const input of list)
         {
-          this.eventbus.emit('schedule-error', error)
+          try
+          {
+            const process = this.mapper.toEntityProcess(input)
+            session.stream.lazyloadConsumerGroup(queueChannel, queueChannel)
+            session.stream.write(queueChannel, process)
+            session.pubsub.publish(queueChannel)
+
+            this.console.color('cyan').log(`✔ ${process.pid} → ${process.domain}/${process.name} → scheduled event queued`)
+          }
+          catch(error)
+          {
+            this.eventbus.emit('schedule-error', error)
+          }
         }
+    
+        await session.ordered.delete(scheduledKey, 0, now)
+        await session.transaction.commit()
       }
-  
-      await session.ordered.delete(scheduledKey, 0, now)
-      await session.transaction.commit()
+      catch(error)
+      {
+        await session.transaction.roleback()
+        this.eventbus.emit('schedule-error', error)
+      }
     }
     catch(error)
     {
-      await session.transaction.roleback()
       this.eventbus.emit('schedule-error', error)
     }
     finally
