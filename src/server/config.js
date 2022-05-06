@@ -17,12 +17,13 @@ module.exports =
     {
       'observers' : 
       {
-        'process-event-scheduled' : { 'domain/process':true },
-        'process-error-scheduled' : { 'domain/process':true },
-        'schedule-error'          : { 'domain/process':true },
-        'process-event-queued'    : { 'domain/process':true },
-        'process-error-queued'    : { 'domain/process':true },
-        'process-error'           : { 'domain/process':true }
+        'process-event-scheduled-cleared' : { 'domain/process':true },
+        'process-event-scheduled'         : { 'domain/process':true },
+        'process-error-scheduled'         : { 'domain/process':true },
+        'schedule-error'                  : { 'domain/process':true },
+        'process-event-queued'            : { 'domain/process':true },
+        'process-error-queued'            : { 'domain/process':true },
+        'process-error'                   : { 'domain/process':true }
       }
     }
   },

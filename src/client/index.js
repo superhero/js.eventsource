@@ -94,11 +94,12 @@ class EventsourceClient
     {
       const scheduledKey = this.mapper.toProcessEventScheduledKey()
       await this.redis.ordered.delete(scheduledKey, min, max)
+      this.redisPublisher.pubsub.publish('process-event-scheduled-cleared')
     }
     catch(previousError)
     {
       const error = new Error('problem when clearing schedule in the eventsource')
-      error.code  = 'E_EVENTSOURCE_CLIENT_SCHEDULE'
+      error.code  = 'E_EVENTSOURCE_CLIENT_CLEAR_SCHEDULE'
       error.chain = { previousError, min, max }
       throw error
     }

@@ -78,6 +78,12 @@ class Process
     timeout)
   }
 
+  async onProcessEventScheduledCleared()
+  {
+    clearTimeout(this.timeoutId)
+    await this.bootstrapProcessSchedule()
+  }
+
   async persistTimedoutScheduledProcesses()
   {
     const
