@@ -88,6 +88,22 @@ class EventsourceClient
     }
   }
 
+  async clearSchedule(min='-inf', max='+inf')
+  {
+    try
+    {
+      const scheduledKey = this.mapper.toProcessEventScheduledKey()
+      await this.redis.ordered.delete(scheduledKey, min, max)
+    }
+    catch(previousError)
+    {
+      const error = new Error('problem when clearing schedule in the eventsource')
+      error.code  = 'E_EVENTSOURCE_CLIENT_SCHEDULE'
+      error.chain = { previousError, min, max }
+      throw error
+    }
+  }
+
   /**
    * @param {string} domain
    * @param {string} pid process id
