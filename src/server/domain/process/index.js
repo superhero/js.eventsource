@@ -111,22 +111,22 @@ class Process
           {
             const process = this.mapper.toEntityProcess(input)
             await this.redis.stream.lazyloadConsumerGroup(queueChannel, queueChannel)
-            session.stream.write(queueChannel, process)
-            session.pubsub.publish(queueChannel)
-
-            this.console.color('cyan').log(`✔ ${process.pid} → ${process.domain}/${process.name} → scheduled event queued`)
+            await session.stream.write(queueChannel, process)
+            this.console.color('cyan').log(`✔ ${process.pid} → ${process.domain}/${process.name} → scheduled event queued ${process.timestamp.toJSON()}`)
           }
           catch(error)
           {
             this.eventbus.emit('schedule-error', error)
           }
         }
-    
+
         await session.ordered.delete(scheduledKey, 0, now)
         await session.transaction.commit()
+        await this.redisPublisher.pubsub.publish(queueChannel)
       }
       catch(error)
       {
+        this.console.color('red').log(`✗ error → "scheduled event queued" failed when attempting to commit`)
         await session.transaction.roleback()
         this.eventbus.emit('schedule-error', error)
       }
