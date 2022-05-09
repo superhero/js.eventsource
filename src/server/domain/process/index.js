@@ -60,11 +60,15 @@ class Process
     if(this.timestamp
     && this.timestamp < timestamp)
     {
-      this.console.color('yellow').log(`- queue is already in line`)
+      this.console.color('yellow').log(`- an earlier scheduled task is already queued`)
       return
     }
 
-    this.console.color('green').log(`✔ updating queue`)
+    const
+      oldTimestamp = new Date(this.timestamp).toJSON(),
+      newTimestamp = new Date(timestamp).toJSON()
+
+    this.console.color('green').log(`✔ updating schedule queue to ${newTimestamp} from ${oldTimestamp}`)
 
     this.timestamp = timestamp
     const timeout = Math.max(0, this.timestamp - Date.now())
