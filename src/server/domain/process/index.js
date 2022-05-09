@@ -57,16 +57,16 @@ class Process
   {
     timestamp = new Date(timestamp).getTime()
 
-    if(this.timestamp
-    && this.timestamp < timestamp)
-    {
-      this.console.color('yellow').log(`- an earlier scheduled task is already queued`)
-      return
-    }
-
     const
       oldTimestamp = new Date(this.timestamp).toJSON(),
       newTimestamp = new Date(timestamp).toJSON()
+
+    if(this.timestamp
+    && this.timestamp < timestamp)
+    {
+      this.console.color('yellow').log(`- an earlier scheduled task is already queued: ${oldTimestamp} compared to new task timestamp: ${newTimestamp}`)
+      return
+    }
 
     this.console.color('green').log(`✔ updating schedule queue to ${newTimestamp} from ${oldTimestamp}`)
 
