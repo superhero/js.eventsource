@@ -8,8 +8,6 @@ COPY src          /opt/superhero-application/src
 
 WORKDIR /opt/superhero-application
 
-RUN ln -snf /usr/share/zoneinfo/CET /etc/localtime && echo "CET" > /etc/timezone
-
 RUN npm install --production
 
 CMD [ "npm", "start" ]
