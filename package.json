@@ -1,6 +1,6 @@
 {
   "name": "@superhero/core.eventsource",
-  "version": "2.3.1",
+  "version": "2.3.2",
   "description": "A solution for an eventsource implementation",
   "repository": "git@github.com:superhero/js.eventsource.git",
   "license": "MIT",

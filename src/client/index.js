@@ -383,11 +383,17 @@ class EventsourceClient
         processing = true
         try
         {
-          while(await this.redis.stream.readGroup(rgChannel, rgChannel, async (_, rgDto) =>
+          // loop to reattempt to fetch messages not yet availible
+          for(let i = 0; i < 5; i++)
           {
-            const event = await this.readEventById(rgDto.id)
-            await consumer(event, rgDto.id)
-          }));
+            while(await this.redis.stream.readGroup(rgChannel, rgChannel, async (_, rgDto) =>
+            {
+              const event = await this.readEventById(rgDto.id)
+              await consumer(event, rgDto.id)
+            }));
+            // sleep
+            await new Promise((accept) => setTimeout(accept, 200)) // 200ms x 5 = 1s
+          }
         }
         catch(previousError)
         {
