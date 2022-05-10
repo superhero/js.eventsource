@@ -377,6 +377,7 @@ class EventsourceClient
     await this.redisSubscriber.pubsub.subscribe(subChannel, async (subDto, _, rgChannel) =>
     {
       this.console.color('green').log(`✔ consumption subscribe message for ${name} / ${subChannel} / ${rgChannel}`)
+      this.console.color('green').log(`✔ consumption subscribe message processing ${processing}`)
 
       if(!processing)
       {
@@ -388,9 +389,13 @@ class EventsourceClient
           {
             while(await this.redis.stream.readGroup(rgChannel, rgChannel, async (_, rgDto) =>
             {
+              this.console.color('green').log(`✔ consumption subscribe message read from group`, rgChannel, rgDto)
               const event = await this.readEventById(rgDto.id)
+              this.console.color('green').log(`✔ consumption subscribe message event read by id`, rgDto.id, event)
               await consumer(event, rgDto.id)
+              this.console.color('green').log(`✔ consumption subscribe message consumer action completed`)
             }));
+            this.console.color('green').log(`✔ consumption subscribe message done reading from group`)
             // sleep
             // await new Promise((accept) => setTimeout(accept, 200)) // 200ms x 5 = 1s
           }
