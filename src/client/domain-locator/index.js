@@ -15,7 +15,7 @@ class EventsourceClientDomainLocator
   
   async bootstrap()
   {
-    this.console.color('green').log(`✔ eventsource client is configured to consume events (${this.config.name}) for domain: "${this.config.domain}"`)
+    // this.console.color('green').log(`✔ eventsource client is configured to consume events (${this.config.name}) for domain: "${this.config.domain}"`)
     await this.client.consume(this.config.domain, this.config.name, async (event, ...args) =>
     {
       let service

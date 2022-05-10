@@ -202,7 +202,7 @@ class Process
       await this.redisPublisher.pubsub.publish(ppPidChannel,  { id })
     }
 
-    this.console.color('green').log(`✔ ${pid} → ${domain}/${name} → ${id} broadcasted ${broadcast}`)
+    this.console.color('green').log(`✔ ${pid} → ${domain}/${name} → ${id} → broadcasted: ${broadcast ? 'yes' : 'no'}`)
   }
 
   async onProcessError(error)
@@ -218,7 +218,9 @@ class Process
     const channel = this.mapper.toProcessErrorQueuedChannel()
     const error = await this.redis.stream.readGroup(channel, channel)
 
-    error && this.console.error(channel, error)
+    error
+    ? this.console.error(channel, error)
+    : this.console.error(channel, 'error not found')
   }
 
   async onScheduleError(error)
@@ -234,7 +236,9 @@ class Process
     const channel = this.mapper.toProcessErrorScheduledChannel()
     const error = await this.redis.stream.readGroup(channel, channel)
 
-    error && this.console.error(channel, error)
+    error
+    ? this.console.error(channel, error)
+    : this.console.error(channel, 'error not found')
   }
 
   async quit()
