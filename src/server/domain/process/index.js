@@ -202,7 +202,7 @@ class Process
       await this.redisPublisher.pubsub.publish(ppPidChannel,  { id })
     }
 
-    this.console.color('green').log(`✔ ${pid} → ${domain}/${name} → ${id}`)
+    this.console.color('green').log(`✔ ${pid} → ${domain}/${name} → ${id} broadcasted ${broadcast}`)
   }
 
   async onProcessError(error)

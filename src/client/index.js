@@ -376,6 +376,8 @@ class EventsourceClient
     let processing = false
     await this.redisSubscriber.pubsub.subscribe(subChannel, async (subDto, _, rgChannel) =>
     {
+      this.console.color('green').log(`✔ consumption subscribe message for ${name} / ${subChannel} / ${rgChannel}`)
+
       if(!processing)
       {
         processing = true
