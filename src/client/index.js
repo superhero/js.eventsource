@@ -373,15 +373,15 @@ class EventsourceClient
   async consume(domain, name, consumer)
   {
     const subChannel = this.mapper.toProcessPersistedChannel(domain, name)
-    let processing = false
+    // let processing = false
     await this.redisSubscriber.pubsub.subscribe(subChannel, async (subDto, _, rgChannel) =>
     {
       this.console.color('green').log(`✔ consumption subscribe message for ${name} / ${subChannel} / ${rgChannel}`)
-      this.console.color('green').log(`✔ consumption subscribe message processing ${processing}`)
+      // this.console.color('green').log(`✔ consumption subscribe message processing ${processing} / ${name}`)
 
-      if(!processing)
+      //if(!processing)
       {
-        processing = true
+        // processing = true
         try
         {
           // loop to reattempt to fetch messages not yet availible
@@ -410,7 +410,7 @@ class EventsourceClient
         }
         finally
         {
-          processing = false
+          // processing = false
         }
       }
     })
