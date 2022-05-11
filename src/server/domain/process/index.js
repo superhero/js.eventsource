@@ -113,10 +113,13 @@ class Process
         {
           try
           {
-            const process = this.mapper.toEntityProcess(input)
+            const 
+              process   = this.mapper.toEntityProcess(input),
+              timestamp = new Date(process.timestamp).toJSON()
+
             await this.redis.stream.lazyloadConsumerGroup(queueChannel, queueChannel)
             await session.stream.write(queueChannel, process)
-            this.console.color('cyan').log(`✔ ${process.pid} → ${process.domain}/${process.name} → scheduled event queued ${new Date(process.timestamp).toJSON()}`)
+            this.console.color('cyan').log(`✔ ${process.pid} → ${process.domain}/${process.name} → scheduled event queued ${timestamp}`)
           }
           catch(error)
           {

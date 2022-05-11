@@ -49,7 +49,6 @@ class EventsourceClient
 
       await this.redis.stream.lazyloadConsumerGroup(channel, channel)
       const response = await this.redis.stream.write(channel, { ...process, broadcast })
-
       this.redisPublisher.pubsub.publish(channel)
 
       return response
@@ -373,45 +372,22 @@ class EventsourceClient
   async consume(domain, name, consumer)
   {
     const subChannel = this.mapper.toProcessPersistedChannel(domain, name)
-    // let processing = false
     await this.redisSubscriber.pubsub.subscribe(subChannel, async (subDto, _, rgChannel) =>
     {
-      this.console.color('green').log(`✔ consumption subscribe message for ${name} / ${subChannel} / ${rgChannel}`)
-      // this.console.color('green').log(`✔ consumption subscribe message processing ${processing} / ${name}`)
-
-      //if(!processing)
+      try
       {
-        // processing = true
-        try
+        while(await this.redis.stream.readGroup(rgChannel, rgChannel, async (_, rgDto) =>
         {
-          // loop to reattempt to fetch messages not yet availible
-          // for(let i = 0; i < 5; i++)
-          {
-            while(await this.redis.stream.readGroup(rgChannel, rgChannel, async (_, rgDto) =>
-            {
-              this.console.color('green').log(`✔ consumption subscribe message read from group`, rgChannel, rgDto)
-              const event = await this.readEventById(rgDto.id)
-              this.console.color('green').log(`✔ consumption subscribe message event read by id`, rgDto.id, event)
-              await consumer(event, rgDto.id)
-              this.console.color('green').log(`✔ consumption subscribe message consumer action completed`)
-            }));
-            this.console.color('green').log(`✔ consumption subscribe message done reading from group`)
-            // sleep
-            // await new Promise((accept) => setTimeout(accept, 200)) // 200ms x 5 = 1s
-          }
-        }
-        catch(previousError)
-        {
-          const error = new Error('eventsource consumer failed')
-          error.code  = 'E_EVENTSOURCE_PROCESS_CONSUMER'
-          error.chain = { previousError, domain, name }
-
-          this.eventbus.emit('process-consumer-error', error)
-        }
-        finally
-        {
-          // processing = false
-        }
+          const event = await this.readEventById(rgDto.id)
+          await consumer(event, rgDto.id)
+        }));
+      }
+      catch(previousError)
+      {
+        const error = new Error('eventsource consumer failed')
+        error.code  = 'E_EVENTSOURCE_PROCESS_CONSUMER'
+        error.chain = { previousError, domain, name }
+        this.eventbus.emit('process-consumer-error', error)
       }
     })
   }
