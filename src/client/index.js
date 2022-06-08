@@ -17,13 +17,19 @@ class EventsourceClient
   async bootstrap()
   {
     await this.redis.connection.connect()
+    this.console.color('green').log('✔ eventsource redis client socket connected')
+
     await this.redisPublisher.connection.connect()
+    this.console.color('green').log('✔ eventsource redis publisher socket connected')
+
     await this.redisSubscriber.connection.connect()
-    
-    this.console.color('green').log('✔ eventsource redis client sockets connected')
-    
-    await this.redisPublisher.auth()
-    await this.redisSubscriber.auth()
+    this.console.color('green').log('✔ eventsource redis subscriber socket connected')
+
+    await this.redisPublisher.bootstrap()
+    this.console.color('green').log('✔ eventsource redis publisher bootstrapped')
+
+    await this.redisSubscriber.bootstrap()
+    this.console.color('green').log('✔ eventsource redis subscriber bootstrapped')
   }
 
   async quit()
@@ -423,7 +429,7 @@ class EventsourceClient
       domain  = error.chain.domain,
       channel = this.mapper.toProcessConsumerErrorChannel(domain)
 
-    this.console.color('red').log(`✗ ${channel} -> ${error.chain.name} -> ${error.message}`)
+    this.console.color('red').log(`✗ ${channel} → ${error.chain.name} → ${error.message}`)
     this.console.color('red').log(error)
 
     await this.redis.stream.write(channel, error)

@@ -45,21 +45,13 @@ describe('Eventsource test suit', () =>
   it('consume when a domain event was persisted', function (done)
   {
     const client = core.locate('eventsource/client')
-
+    let i = 0
     client.consume(domain, name, (dto) =>
     {
       context(this, { title:'dto', value:dto })
       expect(dto.pid).to.equal(pid)
-      return new Promise((accept) => setTimeout(accept, 500))
-    }).then(() => 
-    {
-      return client.consume(domain, name, (dto) =>
-      {
-        context(this, { title:'dto', value:dto })
-        expect(dto.pid).to.equal(pid)
-        done()
-      }).then(() => client.write(event) && client.write(event))
-    })
+      ++i === 2 && done()
+    }).then(() => client.write(event) && client.write(event))
   })
 
   it('observe when a domain event was persisted', function (done)
