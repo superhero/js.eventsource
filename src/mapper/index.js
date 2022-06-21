@@ -37,6 +37,12 @@ class EventsourceMapper
     return `ph:${domain}:${pid}`
   }
 
+  toProcessHistoryKeyIndexedByName(domain, pid, name)
+  {
+    domain = this.toSeperatedLowerCase(domain)
+    return `phn:${domain}:${pid}:${name}`
+  }
+
   toProcessEventQueuedChannel()
   {
     return 'process-event-queued'

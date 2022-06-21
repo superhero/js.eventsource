@@ -141,6 +141,38 @@ class EventsourceClient
     }
   }
 
+  /**
+   * @param {string} domain
+   * @param {string} pid process id
+   * @param {string} name event name
+   * @param {string} [from] timestamp
+   * @param {string} [to] timestamp
+   * @param {boolean} [immutable] if the returned colelction should be immutable or not
+   */
+  async readEventlogByEventName(domain, pid, name, from, to, immutable)
+  {
+    try
+    {
+      const
+        phnKey    = this.mapper.toProcessHistoryKeyIndexedByName(domain, pid, name),
+        scoreFrom = from  && this.mapper.toScore(from),
+        scoreTo   = to    && this.mapper.toScore(to),
+        history   = await this.redis.ordered.read(phnKey, scoreFrom, scoreTo),
+        channel   = this.mapper.toProcessEventQueuedChannel(),
+        eventlog  = await Promise.all(history.map((id) => this.redis.stream.read(channel, id))),
+        filtered  = eventlog.map((event) => this.mapper.toEntityProcess(event, immutable))
+  
+      return filtered
+    }
+    catch(previousError)
+    {
+      const error = new Error('problem when reading the process eventlog from the eventsource')
+      error.code  = 'E_EVENTSOURCE_CLIENT_READ_EVENTLOG'
+      error.chain = { previousError, domain, pid }
+      throw error
+    }
+  }
+
   async readState(domain, pid, from=null, to=null, immutable=false)
   {
     try
@@ -164,17 +196,15 @@ class EventsourceClient
    * @param {string} domain
    * @param {string} pid
    * @param {string} name
-   * @param {string} [timestamp] optional, will pop the last event persisted if emitted
+   * @param {string} [timestamp] optional, will pop the last event persisted if omitted
    */
   async readEvent(domain, pid, name, timestamp)
   {
     try
     {
       const
-        eventlog  = await this.readEventlog(domain, pid),
-        filtered  = timestamp
-                    ? eventlog.filter((event) => event.name === name && event.timestamp === timestamp)
-                    : eventlog.filter((event) => event.name === name)
+        eventlog  = await this.readEventlog(domain, pid, timestamp, timestamp),
+        filtered  = eventlog.filter((event) => event.name === name)
 
       return filtered.pop().data
     }

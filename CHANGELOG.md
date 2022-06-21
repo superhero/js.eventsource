@@ -1,3 +1,7 @@
+2.4.0
+Added the ability to read the eventlog by event name. 
+OBS! This ability requires all data to be written with the current release, else it won't be indexed correctly and the data can not be read as expected.
+
 1.7.0
 Added the ability to fetch the eventlog between a defined timerange.
 

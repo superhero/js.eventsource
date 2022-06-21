@@ -179,11 +179,19 @@ class Process
       process     = this.mapper.toEntityProcess(event),
       { timestamp, domain, pid, name } = process,
       phKey       = this.mapper.toProcessHistoryKey(domain, pid),
-      score       = this.mapper.toScore(timestamp)
+      phnKey      = this.mapper.toProcessHistoryKeyIndexedByName(domain, pid, name),
+      score       = this.mapper.toScore(timestamp),
+      session     = this.redis.createSession()
+
+    await session.connection.connect()
 
     try
     {
-      await this.redis.ordered.write(phKey, id, score)
+      await session.auth()
+      await session.transaction.begin()
+      await session.ordered.write(phKey,  id, score)
+      await session.ordered.write(phnKey, id, score)
+      await session.transaction.commit()
     }
     catch(previousError)
     {
@@ -191,6 +199,10 @@ class Process
       error.code  = 'E_EVENTSOURCE_PERSIST_PROCESS'
       error.chain = { previousError, id, event }
       throw error
+    }
+    finally
+    {
+      await session.connection.quit()
     }
 
     if(broadcast)
