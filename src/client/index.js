@@ -42,6 +42,64 @@ class EventsourceClient
   }
 
   /**
+   * @param {string} id
+   */
+  async delete(id)
+  {
+    try
+    {
+      const
+        channel = this.mapper.toProcessEventQueuedChannel(),
+        process = await this.redis.stream.read(channel, id),
+        { domain, pid, name } = process,
+        phKey   = this.mapper.toProcessHistoryKey(domain, pid),
+        phnKey  = this.mapper.toProcessHistoryKeyIndexedByName(domain, pid, name)
+
+      await this.redis.ordered.deleteValue(phKey,  id)
+      await this.redis.ordered.deleteValue(phnKey, id)
+      await this.redis.stream.delete(channel, id)
+
+      return response
+    }
+    catch(previousError)
+    {
+      const error = new Error('problem when deleting the process event from the eventsource')
+      error.code  = 'E_EVENTSOURCE_CLIENT_DELETE'
+      error.chain = { previousError, id }
+      throw error
+    }
+  }
+
+  /**
+   * @param {string} domain
+   * @param {string} pid
+   * @param {string} name
+   * 
+   * This functionality only works for data written from version 2.4.0
+   */
+  async deleteByName(domain, pid, name)
+  {
+    try
+    {
+      const
+        phnKey      = this.mapper.toProcessHistoryKeyIndexedByName(domain, pid, name),
+        collection  = await this.redis.ordered.read(phnKey)
+
+      for(const id of collection)
+      {
+        await this.delete(id)
+      }
+    }
+    catch(previousError)
+    {
+      const error = new Error('problem when deleting the process events by name from a pid in the eventsource')
+      error.code  = 'E_EVENTSOURCE_CLIENT_DELETE_BY_NAME'
+      error.chain = { previousError, domain, pid, name }
+      throw error
+    }
+  }
+
+  /**
    * @param {Eventsource.Schema.EntityProcess} input 
    * @param {boolean} [broadcast=true] 
    */
@@ -412,6 +470,10 @@ class EventsourceClient
     {
       try
       {
+        // need to read from group instead of from the published channel to prevent the message 
+        // to be handeled multiple times
+        // TODO: delete from stream after message was read and consumed properly, the message is 
+        // never used again for anything...
         while(await this.redis.stream.readGroup(rgChannel, rgChannel, async (_, rgDto) =>
         {
           const event = await this.readEventById(rgDto.id)

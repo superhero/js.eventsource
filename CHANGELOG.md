@@ -1,3 +1,6 @@
+2.5.0
+Added the ability to delete from the eventlog by id and name.
+
 2.4.0
 Added the ability to read the eventlog by event name. 
 OBS! This ability requires all data to be written with the current release, else it won't be indexed correctly and the data can not be read as expected.
