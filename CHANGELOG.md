@@ -1,3 +1,6 @@
+2.6.0
+Added the ability to read a stream by a group name.
+
 2.5.0
 Added the ability to delete from the eventlog by id and name.
 

@@ -251,6 +251,26 @@ class EventsourceClient
   }
 
   /**
+   * @param {string} group
+   */
+  readStream(group)
+  {
+    try
+    {
+      const channel = this.mapper.toProcessEventQueuedChannel()
+      await this.redis.stream.lazyloadConsumerGroup(channel, group)
+      return await this.redis.stream.readGroup(channel, group)
+    }
+    catch(previousError)
+    {
+      const error = new Error('eventsource read stream failed')
+      error.code  = 'E_EVENTSOURCE_READ_STREAM'
+      error.chain = { previousError, group }
+      throw error
+    }
+  }
+
+  /**
    * @param {string} domain
    * @param {string} pid
    * @param {string} name
@@ -460,8 +480,6 @@ class EventsourceClient
    * @param {string} domain 
    * @param {string} name 
    * @param {function} consumer 
-   * 
-   * @returns {number} the `subscriberId` is used as a `consumerId` 
    */
   async consume(domain, name, consumer)
   {
