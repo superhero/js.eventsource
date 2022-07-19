@@ -252,13 +252,14 @@ class EventsourceClient
 
   /**
    * @param {string} group
+   * @param {string} [id='0'] "0" to read from the beginning
    */
-  async readStream(group)
+  async readStream(group, id='0')
   {
     try
     {
       const channel = this.mapper.toProcessEventQueuedChannel()
-      await this.redis.stream.lazyloadConsumerGroup(channel, group)
+      await this.redis.stream.lazyloadConsumerGroup(channel, group, id)
       return await this.redis.stream.readGroup(channel, group)
     }
     catch(previousError)
