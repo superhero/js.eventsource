@@ -1,6 +1,7 @@
 const
-  EventsourceClient   = require('.'),
-  LocatorConstituent  = require('superhero/core/locator/constituent')
+  EventsourceClient         = require('.'),
+  EventsourceClientFactory  = require('./factory'),
+  LocatorConstituent        = require('superhero/core/locator/constituent')
 
 /**
  * @memberof Eventsource.Client
@@ -14,15 +15,17 @@ class EventsourceClientLocator extends LocatorConstituent
   locate()
   {
     const
-      redis       = this.locator.locate('redis/client'),
-      publisher   = redis.createSession(),
-      subscriber  = redis.createSession(),
-      mapper      = this.locator.locate('eventsource/mapper'),
-      eventbus    = this.locator.locate('core/eventbus'),
-      deepmerge   = this.locator.locate('core/deepmerge'),
-      console     = this.locator.locate('core/console')
+      mapper        = this.locator.locate('eventsource/mapper'),
+      eventbus      = this.locator.locate('core/eventbus'),
+      deepmerge     = this.locator.locate('core/deepmerge'),
+      console       = this.locator.locate('core/console'),
+      configuration = this.locator.locate('core/configuration'),
+      factory       = new EventsourceClientFactory(console, mapper, eventbus, deepmerge),
+      optionsRedis  = configuration.find('client/redis'),
+      optionsEs     = configuration.find('client/eventsource'),
+      client        = factory.create(optionsEs || optionsRedis)
 
-    return new EventsourceClient(mapper, redis, publisher, subscriber, deepmerge, eventbus, console)
+    return client
   }
 }
 

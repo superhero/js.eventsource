@@ -253,7 +253,7 @@ class EventsourceClient
   /**
    * @param {string} group
    */
-  readStream(group)
+  async readStream(group)
   {
     try
     {

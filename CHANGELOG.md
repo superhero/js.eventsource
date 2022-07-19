@@ -1,3 +1,6 @@
+2.7.0
+Added a factory to make it easier to work with multiple sources of eventsource instances.
+
 2.6.0
 Added the ability to read a stream by a group name.
 
