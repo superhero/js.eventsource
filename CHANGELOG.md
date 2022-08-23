@@ -1,3 +1,6 @@
+2.8.0
+Indexing "only by pid" and "only by name" on the server... as well the currently "domain:pid" and "domain:pid:name"
+
 2.7.0
 Added a factory to make it easier to work with multiple sources of eventsource instances.
 

@@ -43,6 +43,16 @@ class EventsourceMapper
     return `phn:${domain}:${pid}:${name}`
   }
 
+  toProcessHistoryKeyIndexedOnlyByName(name)
+  {
+    return `phon:${name}`
+  }
+
+  toProcessHistoryKeyIndexedOnlyByPid(pid)
+  {
+    return `phop:${pid}`
+  }
+
   toProcessEventQueuedChannel()
   {
     return 'process-event-queued'

@@ -179,6 +179,8 @@ class Process
       process     = this.mapper.toEntityProcess(event),
       { timestamp, domain, pid, name } = process,
       phKey       = this.mapper.toProcessHistoryKey(domain, pid),
+      phonKey     = this.mapper.toProcessHistoryKeyIndexedOnlyByName(name),
+      phopKey     = this.mapper.toProcessHistoryKeyIndexedOnlyByPid(pid),
       phnKey      = this.mapper.toProcessHistoryKeyIndexedByName(domain, pid, name),
       score       = this.mapper.toScore(timestamp),
       session     = this.redis.createSession()
@@ -189,8 +191,10 @@ class Process
     {
       await session.auth()
       await session.transaction.begin()
-      await session.ordered.write(phKey,  id, score)
-      await session.ordered.write(phnKey, id, score)
+      await session.ordered.write(phKey,    id, score)
+      await session.ordered.write(phnKey,   id, score)
+      await session.ordered.write(phonKey,  id, score)
+      await session.ordered.write(phopKey,  id, score)
       await session.transaction.commit()
     }
     catch(previousError)
