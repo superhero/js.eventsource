@@ -1,3 +1,14 @@
+3.0.0
+- Added a migration script for the old data to be indexed correlated with the new versions index. If you have old data written using an older version of this library, then the same functionality is still expected to work, but the newly intruduced functionality will not; for that reason it's recomeded to migrate the data. The script is written to ensure that curruption will not take place, even if you run the script multiple times. But as usally, you should always take a backup of your data before running this script.
+- Added the schemas `QueryProcess` and `EventProcess`, where the `EventProcess` includes the stream ID.
+- Added the optional `rid` attribute (short for reference id) to the `ValueProcessMeta` schema. The attributre is intended to be used to refer to the precending event, useful if analysing a multi-threaded eventlog.
+- Changed interface of the `client.write` function, from `client.write(input, broadcast=true)` to `client.write(input, [chain], broadcast=true)`, to be able to chain the previous event with the new one.
+- Changed anme of the `mapper.toEntityProcess` function to `mapper.toQueryProcess`.
+- Added function `mapper.toEventProcess`, difference from the `mapper.toQueryProcess` being that the event is returned after peristed, and is expected to include the ID in the returned DTO.
+- Added `client.readEventlogByPid(pid, [from], [to], [immutable])`, allows to read the eventlog without providing the domain name.
+- Added `client.readEventWrittenByAllProcesses(name, [from], [to], [immutable])`, allows to read all events of a specific name, independent of what domain or pid it was defined by.
+- Added `client.migrateEventsourceStreamFromV2ToV3`, function that migrates data to the new data structure. Function is developed to be safe to call multiple times without side effects.
+
 2.8.0
 Indexing "only by pid" and "only by name" on the server... as well the currently "domain:pid" and "domain:pid:name"
 

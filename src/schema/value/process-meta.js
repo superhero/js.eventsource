@@ -4,6 +4,13 @@
  */
 const schema =
 {
+  'rid':
+  {
+    'type'      : 'string',
+    'not-empty' : true,
+    'nullable'  : true,
+    'default'   : null
+  },
   'timestamp':
   {
     'type'      : 'timestamp',

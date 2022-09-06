@@ -101,15 +101,31 @@ class EventsourceClient
 
   /**
    * @param {Eventsource.Schema.EntityProcess} input 
+   * @param {Eventsource.Schema.EntityProcess} [chain] the event that preceeded 
+   * the event now being written, used to be extended by the input entity and set 
+   * the referer id called "rid" in the meta value object, extended by the 
+   * process entity.
    * @param {boolean} [broadcast=true] 
    */
-  async write(input, broadcast=true)
+  async write(input, chain, broadcast=true)
   {
     try
     {
+      if(chain)
+      {
+        input = this.deepmerge.merge(
+        {
+          rid     : chain.id, 
+          domain  : chain.domain, 
+          pid     : chain.pid, 
+          ppid    : chain.ppid, 
+          name    : chain.name 
+        }, input)
+      }
+
       const
         channel   = this.mapper.toProcessEventQueuedChannel(),
-        process   = this.mapper.toEntityProcess(input)
+        process   = this.mapper.toQueryProcess(input)
 
       await this.redis.stream.lazyloadConsumerGroup(channel, channel)
       const response = await this.redis.stream.write(channel, { ...process, broadcast })
@@ -137,7 +153,7 @@ class EventsourceClient
       const 
         scheduledKey    = this.mapper.toProcessEventScheduledKey(),
         scheduledScore  = new Date(timestamp).getTime(),
-        process         = this.mapper.toEntityProcess(input)
+        process         = this.mapper.toQueryProcess(input)
 
       await this.redis.ordered.write(scheduledKey, process, scheduledScore)
       this.redisPublisher.pubsub.publish(scheduledKey, scheduledScore)
@@ -185,8 +201,8 @@ class EventsourceClient
         scoreTo   = to    && this.mapper.toScore(to),
         history   = await this.redis.ordered.read(phKey, scoreFrom, scoreTo),
         channel   = this.mapper.toProcessEventQueuedChannel(),
-        eventlog  = await Promise.all(history.map((id) => this.redis.stream.read(channel, id))),
-        filtered  = eventlog.map((event) => this.mapper.toEntityProcess(event, immutable))
+        eventlog  = await Promise.all(history.map((id) => this.redis.stream.read(channel, id).then((event) => ({ ...event, id })))),
+        filtered  = eventlog.map((event) => this.mapper.toEventProcess(event, immutable))
 
       return filtered
     }
@@ -195,6 +211,72 @@ class EventsourceClient
       const error = new Error('problem when reading the process eventlog from the eventsource')
       error.code  = 'E_EVENTSOURCE_CLIENT_READ_EVENTLOG'
       error.chain = { previousError, domain, pid }
+      throw error
+    }
+  }
+
+  /**
+   * This function requires a migration of old data before use. The migration script is 
+   * expected to be included in future 3.0.0 release.
+   * 
+   * @param {string} pid process id
+   * @param {string} [from] timestamp
+   * @param {string} [to] timestamp
+   * @param {boolean} [immutable] if the returned colelction should be immutable or not
+   */
+  async readEventlogByPid(pid, from, to, immutable)
+  {
+    try
+    {
+      const
+        phpKey    = this.mapper.toProcessHistoryKeyIndexedOnlyByPid(pid),
+        scoreFrom = from  && this.mapper.toScore(from),
+        scoreTo   = to    && this.mapper.toScore(to),
+        history   = await this.redis.ordered.read(phpKey, scoreFrom, scoreTo),
+        channel   = this.mapper.toProcessEventQueuedChannel(),
+        eventlog  = await Promise.all(history.map((id) => this.redis.stream.read(channel, id).then((event) => ({ ...event, id })))),
+        filtered  = eventlog.map((event) => this.mapper.toEventProcess(event, immutable))
+  
+      return filtered
+    }
+    catch(previousError)
+    {
+      const error = new Error('problem when reading the process eventlog from the eventsource only by pid')
+      error.code  = 'E_EVENTSOURCE_CLIENT_READ_EVENTLOG'
+      error.chain = { previousError, pid }
+      throw error
+    }
+  }
+
+  /**
+   * This function requires a migration of old data before use. The migration script is 
+   * expected to be included in future 3.0.0 release.
+   * 
+   * @param {string} name name of the event
+   * @param {string} [from] timestamp
+   * @param {string} [to] timestamp
+   * @param {boolean} [immutable] if the returned colelction should be immutable or not
+   */
+  async readEventWrittenByAllProcesses(name, from, to, immutable)
+  {
+    try
+    {
+      const
+        phonKey   = this.mapper.toProcessHistoryKeyIndexedOnlyByName(name),
+        scoreFrom = from  && this.mapper.toScore(from),
+        scoreTo   = to    && this.mapper.toScore(to),
+        history   = await this.redis.ordered.read(phonKey, scoreFrom, scoreTo),
+        channel   = this.mapper.toProcessEventQueuedChannel(),
+        eventlog  = await Promise.all(history.map((id) => this.redis.stream.read(channel, id).then((event) => ({ ...event, id })))),
+        filtered  = eventlog.map((event) => this.mapper.toEventProcess(event, immutable))
+  
+      return filtered
+    }
+    catch(previousError)
+    {
+      const error = new Error('problem when reading the events written by all processes from the eventsource')
+      error.code  = 'E_EVENTSOURCE_CLIENT_READ_EVENTLOG'
+      error.chain = { previousError, name }
       throw error
     }
   }
@@ -217,8 +299,8 @@ class EventsourceClient
         scoreTo   = to    && this.mapper.toScore(to),
         history   = await this.redis.ordered.read(phnKey, scoreFrom, scoreTo),
         channel   = this.mapper.toProcessEventQueuedChannel(),
-        eventlog  = await Promise.all(history.map((id) => this.redis.stream.read(channel, id))),
-        filtered  = eventlog.map((event) => this.mapper.toEntityProcess(event, immutable))
+        eventlog  = await Promise.all(history.map((id) => this.redis.stream.read(channel, id).then((event) => ({ ...event, id })))),
+        filtered  = eventlog.map((event) => this.mapper.toEventProcess(event, immutable))
   
       return filtered
     }
@@ -357,12 +439,10 @@ class EventsourceClient
   }
 
   /**
-   * @param {string} domain
-   * @param {string} pid
-   * @param {string} name
+   * @param {Eventsource.Schema.EntityProcess} input
    * @param {function} actor
    */
-  async lazyload(domain, pid, name, actor)
+  async lazyload({ rid, domain, pid, ppid, name }, actor)
   {
     try
     {
@@ -400,7 +480,7 @@ class EventsourceClient
 
     try
     {
-      await this.write({ domain, pid, name, data })
+      await this.write({ rid, domain, pid, ppid, name, data })
     }
     catch(previousError)
     {
@@ -492,7 +572,7 @@ class EventsourceClient
         // need to read from group instead of from the published channel to prevent the message 
         // to be handeled multiple times
         // TODO: delete from stream after message was read and consumed properly, the message is 
-        // never used again for anything...
+        // never used again, for anything...
         while(await this.redis.stream.readGroup(rgChannel, rgChannel, async (_, rgDto) =>
         {
           const event = await this.readEventById(rgDto.id)
@@ -545,6 +625,78 @@ class EventsourceClient
 
     await this.redis.stream.write(channel, error)
     await this.redisPublisher.pubsub.publish(channel)
+  }
+
+  /**
+   * To migrate data written by version 2 of this library to version 3.
+   * 
+   * @param {number} [attempt=1] if you, for what ever reason, need to re-attempt the migration from 
+   * start, the attempt argument will be used to compose the read-group used to iterate through 
+   * the event stream.
+   * @param {Array<number>} [rejected] an optional array of id's, if needed to reject migration of
+   * one or more id's.
+   */
+  async migrateEventsourceStreamFromV2ToV3(attempt=1, rejected=[])
+  {
+    const 
+      stream = this.mapper.toProcessEventQueuedChannel(),
+      group  = 'migrate-v2-to-v3-attempt-' + attempt
+
+    await this.redis.stream.lazyloadConsumerGroup(stream, group)
+
+    while(await this.redis.stream.readGroup(stream, group, async (id, event) =>
+    {
+      // Possible to reject the migration for specific ID
+      // This should never be necessery to use, but for all does reasons that I
+      // can not predict I decided to add this very small functionality
+      // ...to reject migration for specific ID's
+      if(false === rejected.includes(id))
+      {
+        return
+      }
+
+      try
+      {
+        const
+          process     = this.mapper.toQueryProcess(event),
+          { timestamp, domain, pid, name } = process,
+          phonKey     = this.mapper.toProcessHistoryKeyIndexedOnlyByName(name),
+          phopKey     = this.mapper.toProcessHistoryKeyIndexedOnlyByPid(pid),
+          phnKey      = this.mapper.toProcessHistoryKeyIndexedByName(domain, pid, name),
+          score       = this.mapper.toScore(timestamp),
+          session     = this.redis.createSession()
+
+        await session.connection.connect()
+        await session.auth()
+        await session.transaction.begin()
+
+        await this.redis.ordered.has(phnKey, id)
+        && await session.ordered.write(phnKey, id, score)
+
+        await this.redis.ordered.has(phonKey, id)
+        && await session.ordered.write(phonKey, id, score)
+
+        await this.redis.ordered.has(phopKey, id)
+        && await session.ordered.write(phopKey, id, score)
+
+        await session.transaction.commit()
+
+        this.console.color('green').log(`✔ ${pid} → ${domain}/${name} → ${id} → ${timestamp}`)
+      }
+      catch(previousError)
+      {
+        const error = new Error(`could not migrate process`)
+        error.code  = 'E_EVENTSOURCE_MIGRATE_PROCESS'
+        error.chain = { previousError, id, event, attempt }
+        throw error
+      }
+      finally
+      {
+        await session.connection.quit()
+      }
+    }));
+
+    this.console.color('blue').log('✔ the migration process has finished')
   }
 }
 

@@ -12,8 +12,8 @@
     "start": "node ./src/server/index.js"
   },
   "dependencies": {
-    "@superhero/core.redis": "2.3.1",
-    "superhero": "2.11.7"
+    "@superhero/core.redis": "2.4.0",
+    "superhero": "2.12.1"
   },
   "devDependencies": {
     "chai": "4.3.0",

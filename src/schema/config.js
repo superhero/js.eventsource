@@ -11,6 +11,7 @@ module.exports =
       {
         'eventsource/schema/entity/*'  : __dirname + '/entity/*',
         'eventsource/schema/event/*'   : __dirname + '/event/*',
+        'eventsource/schema/query/*'   : __dirname + '/query/*',
         'eventsource/schema/value/*'   : __dirname + '/value/*',
       }
     }

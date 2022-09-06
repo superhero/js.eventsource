@@ -114,7 +114,7 @@ class Process
           try
           {
             const 
-              process   = this.mapper.toEntityProcess(input),
+              process   = this.mapper.toQueryProcess(input),
               timestamp = new Date(process.timestamp).toJSON()
 
             await this.redis.stream.lazyloadConsumerGroup(queueChannel, queueChannel)
@@ -170,13 +170,13 @@ class Process
   }
 
   /**
-   * @param {Eventsource.Schema.EntityProcess} event 
+   * @param {Eventsource.Schema.EntityProcess} event
    */
   async persistProcess(id, event)
   {
     const 
       broadcast   = event.broadcast === undefined ? true : !!event.broadcast,
-      process     = this.mapper.toEntityProcess(event),
+      process     = this.mapper.toQueryProcess(event),
       { timestamp, domain, pid, name } = process,
       phKey       = this.mapper.toProcessHistoryKey(domain, pid),
       phonKey     = this.mapper.toProcessHistoryKeyIndexedOnlyByName(name),
