@@ -1,3 +1,6 @@
+3.1.0
+- Added chain ability to the `client.schedule` function, to chain one event to a previous one as explained in changelog 3.0.0 describing changes for `client.write`.
+
 3.0.0
 - Added a migration script for the old data to be indexed correlated with the new versions index. If you have old data written using an older version of this library, then the same functionality is still expected to work, but the newly intruduced functionality will not; for that reason it's recomeded to migrate the data. The script is written to ensure that curruption will not take place, even if you run the script multiple times. But as usally, you should always take a backup of your data before running this script.
 - Added the schemas `QueryProcess` and `EventProcess`, where the `EventProcess` includes the stream ID.

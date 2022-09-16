@@ -145,11 +145,27 @@ class EventsourceClient
   /**
    * @param {string|number} timestamp value representing the time when the event should be persisted
    * @param {Eventsource.Schema.EntityProcess} input 
+   * @param {Eventsource.Schema.EntityProcess} [chain] the event that preceeded 
+   * the event now being written, used to be extended by the input entity and set 
+   * the referer id called "rid" in the meta value object, extended by the 
+   * process entity.
    */
-  async schedule(timestamp, input)
+  async schedule(timestamp, input, chain)
   {
     try
     {
+      if(chain)
+      {
+        input = this.deepmerge.merge(
+        {
+          rid     : chain.id,
+          domain  : chain.domain,
+          pid     : chain.pid,
+          ppid    : chain.ppid,
+          name    : chain.name
+        }, input)
+      }
+
       const 
         scheduledKey    = this.mapper.toProcessEventScheduledKey(),
         scheduledScore  = new Date(timestamp).getTime(),
