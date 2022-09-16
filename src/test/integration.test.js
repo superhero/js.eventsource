@@ -89,10 +89,13 @@ describe('Eventsource test suit', () =>
   it('read the eventlog', async function ()
   {
     const
+      schema    = core.locate('core/schema/composer'),
       client    = core.locate('eventsource/client'),
       eventlog  = await client.readEventlog(domain, pid)
-    context(this, { title:'eventlog', value:eventlog  })
-    expect(eventlog).to.deep.equal([ event, event ])
+    context(this, { title:'eventlog', value:eventlog })
+    expect(eventlog.length).to.deep.equal(2)
+    expect(schema.compose.bind(schema, 'eventsource/schema/event/process', eventlog[0])).to.not.throw()
+    expect(schema.compose.bind(schema, 'eventsource/schema/event/process', eventlog[1])).to.not.throw()
   })
 
   it('read an process event', async function ()
@@ -115,18 +118,25 @@ describe('Eventsource test suit', () =>
 
   it('lazyload an existing process event', async function ()
   {
-    const
-      client    = core.locate('eventsource/client'),
-      eventData = await client.lazyload(domain, pid, name, async () => 123)
-    context(this, { title:'event data',  value:eventData })
-    expect(eventData).to.deep.equal(data)
+    try
+    {
+      const
+        client    = core.locate('eventsource/client'),
+        eventData = await client.lazyload({ domain, pid, name }, async () => 123)
+      context(this, { title:'event data',  value:eventData })
+      expect(eventData).to.deep.equal(data)
+    }
+    catch(foo)
+    {
+      core.locate('core/console').log(foo)
+    }
   })
 
   it('lazyload a none existing process event', async function ()
   {
     const
       client    = core.locate('eventsource/client'),
-      eventData = await client.lazyload(domain, pid, 'foobar', async () => 123)
+      eventData = await client.lazyload({ domain, pid, name:'foobar' }, async () => 123)
     context(this, { title:'event data',  value:eventData })
     expect(eventData).to.equal(123)
   })

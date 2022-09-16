@@ -319,7 +319,23 @@ class EventsourceClient
     {
       const
         eventlog  = await this.readEventlog(domain, pid, from, to, immutable),
-        state     = this.deepmerge.merge(...eventlog.map((event) => event.data))
+        state     = {}
+
+      let i
+
+      for(let i = 1; i < eventlog.length; i++)
+      {
+        if(i % 10 === 0)
+        {
+          const segment = this.deepmerge.merge(...eventlog.slice(i - 10, i).map((event) => event.data))
+          this.deepmerge.merge(state, segment)
+        }
+        else if(i === eventlog.length - 1)
+        {
+          const segment = this.deepmerge.merge(...eventlog.slice(i - (i % 10), i).map((event) => event.data))
+          this.deepmerge.merge(state, segment)
+        }
+      }
 
       return state
     }
