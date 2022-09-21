@@ -21,9 +21,8 @@ class EventsourceClientLocator extends LocatorConstituent
       console       = this.locator.locate('core/console'),
       configuration = this.locator.locate('core/configuration'),
       factory       = new EventsourceClientFactory(console, mapper, eventbus, deepmerge),
-      optionsRedis  = configuration.find('client/redis'),
       optionsEs     = configuration.find('client/eventsource'),
-      client        = factory.create(optionsEs || optionsRedis)
+      client        = factory.create(optionsEs)
 
     return client
   }

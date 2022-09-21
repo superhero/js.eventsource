@@ -25,6 +25,9 @@ class EventsourceClient
     await this.redisSubscriber.connection.connect()
     this.console.color('green').log('✔ eventsource redis subscriber socket connected')
 
+    await this.redis.bootstrap()
+    this.console.color('green').log('✔ eventsource redis bootstrapped')
+
     await this.redisPublisher.bootstrap()
     this.console.color('green').log('✔ eventsource redis publisher bootstrapped')
 

@@ -12,7 +12,6 @@ module.exports =
     },
     dependency:
     {
-      'client/redis'        : '@superhero/core.redis/src/client',
       'eventsource/mapper'  : __dirname + '/../mapper',
       'eventsource/schema'  : __dirname + '/../schema'
     },
