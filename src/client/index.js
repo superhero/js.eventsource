@@ -340,8 +340,7 @@ class EventsourceClient
         eventlog  = await this.readEventlog(domain, pid, from, to, immutable),
         state     = {}
 
-      let i
-
+      // divided in segments of 10... to prevent call stack issues with larger eventlogs
       for(let i = 1; i < eventlog.length; i++)
       {
         if(i % 10 === 0)
@@ -351,7 +350,7 @@ class EventsourceClient
         }
         else if(i === eventlog.length - 1)
         {
-          const segment = this.deepmerge.merge(...eventlog.slice(i - (i % 10), i).map((event) => event.data))
+          const segment = this.deepmerge.merge(...eventlog.slice(i - (i % 10), i + 1).map((event) => event.data))
           this.deepmerge.merge(state, segment)
         }
       }
