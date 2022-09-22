@@ -127,8 +127,8 @@ class EventsourceClient
       }
 
       const
-        channel   = this.mapper.toProcessEventQueuedChannel(),
-        process   = this.mapper.toQueryProcess(input)
+        channel = this.mapper.toProcessEventQueuedChannel(),
+        process = this.mapper.toQueryProcess(input)
 
       await this.redis.stream.lazyloadConsumerGroup(channel, channel)
       const response = await this.redis.stream.write(channel, { ...process, broadcast })
@@ -433,7 +433,7 @@ class EventsourceClient
         channel   = this.mapper.toProcessEventQueuedChannel(),
         response  = await this.redis.stream.read(channel, id)
 
-      return response
+      return { ...response, id }
     }
     catch(previousError)
     {
