@@ -672,11 +672,11 @@ class EventsourceClient
    */
   async migrateEventsourceStreamFromV2ToV3(attempt=1, rejected=[])
   {
-    const 
+    const
       stream = this.mapper.toProcessEventQueuedChannel(),
       group  = 'migrate-v2-to-v3-attempt-' + attempt
 
-    await this.redis.stream.lazyloadConsumerGroup(stream, group)
+    await this.redis.stream.lazyloadConsumerGroup(stream, group, 0)
 
     while(await this.redis.stream.readGroup(stream, group, async (id, event) =>
     {
