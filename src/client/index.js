@@ -684,7 +684,7 @@ class EventsourceClient
       // This should never be necessery to use, but for all does reasons that I
       // can not predict I decided to add this very small functionality
       // ...to reject migration for specific ID's
-      if(false === rejected.includes(id))
+      if(rejected.includes(id))
       {
         return
       }
