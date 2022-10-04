@@ -689,6 +689,9 @@ class EventsourceClient
         return
       }
 
+      this.console.color('blue').log(`- ${event.pid}`)
+      const session = this.redis.createSession()
+
       try
       {
         const
@@ -697,8 +700,7 @@ class EventsourceClient
           phonKey     = this.mapper.toProcessHistoryKeyIndexedOnlyByName(name),
           phopKey     = this.mapper.toProcessHistoryKeyIndexedOnlyByPid(pid),
           phnKey      = this.mapper.toProcessHistoryKeyIndexedByName(domain, pid, name),
-          score       = this.mapper.toScore(timestamp),
-          session     = this.redis.createSession()
+          score       = this.mapper.toScore(timestamp)
 
         await session.connection.connect()
         await session.auth()
