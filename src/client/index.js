@@ -341,9 +341,9 @@ class EventsourceClient
         state     = {}
 
       // divided in segments of 10... to prevent call stack issues with larger eventlogs
-      for(let i = 1; i < eventlog.length; i++)
+      for(let i = 0; i < eventlog.length; i++)
       {
-        if(i % 10 === 0)
+        if(i && i % 10 === 0)
         {
           const segment = this.deepmerge.merge(...eventlog.slice(i - 10, i).map((event) => event.data))
           this.deepmerge.merge(state, segment)
