@@ -1,5 +1,5 @@
 /**
- * @memberof Eventsource.Server.Domain
+ * @memberof Eventsource.Server
  * @extends {superhero/core/locator/constituent}
  */
 class Process
@@ -212,13 +212,15 @@ class Process
     if(broadcast)
     {
       const 
-        ppChannel     = this.mapper.toProcessPersistedChannel(domain, name),
-        ppPidChannel  = this.mapper.toProcessPersistedPidChannel(domain, pid)
+        ppChannel         = this.mapper.toProcessPersistedChannel(domain, name),
+        ppPidChannel      = this.mapper.toProcessPersistedPidChannel(domain, pid),
+        ppPidNameChannel  = this.mapper.toProcessPersistedPidNameChannel(domain, pid, name)
 
       await this.redis.stream.lazyloadConsumerGroup(ppChannel, ppChannel)
       await this.redis.stream.write(ppChannel, { id })
-      await this.redisPublisher.pubsub.publish(ppChannel,     { id })
-      await this.redisPublisher.pubsub.publish(ppPidChannel,  { id })
+      await this.redisPublisher.pubsub.publish(ppChannel,         { id })
+      await this.redisPublisher.pubsub.publish(ppPidChannel,      { id })
+      await this.redisPublisher.pubsub.publish(ppPidNameChannel,  { id })
     }
 
     this.console.color('green').log(`✔ ${pid} → ${domain}/${name} → ${id} → broadcasted: ${broadcast ? 'yes' : 'no'}`)

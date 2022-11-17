@@ -74,6 +74,91 @@ class EventsourceClient
   }
 
   /**
+   * @param {string} domain 
+   * @param {string} pid 
+   * @param {string} happyPaths string or array of event names that should be acceptable
+   * @param {string} [exceptions] string or array of event names that shoudl be rejected as an exception/error
+   * @param {number} [timeout=6e4] 
+   * @throws E_EVENTSOURCE_CLIENT_WAIT
+   * @throws E_EVENTSOURCE_CLIENT_WAIT_EXCEPTION
+   * @throws E_EVENTSOURCE_CLIENT_WAIT_TIMEOUT
+   */
+  wait(domain, pid, happyPaths, exceptions=[], timeout=6e4)
+  {
+    if(false === Array.isArray(happyPaths))
+    {
+      happyPaths = [happyPaths]
+    }
+    if(false === Array.isArray(exceptions))
+    {
+      exceptions = [exceptions]
+    }
+
+    return new Promise((accept, reject) =>
+    {
+      const 
+        eventNames = [ ...happyPaths, ...exceptions ],
+        timeout_id = setTimeout(() => 
+        {
+          const error = new Error('exceptional event triggered')
+          error.code  = 'E_EVENTSOURCE_CLIENT_WAIT_TIMEOUT'
+          error.chain = { event, dto }
+          reject(error)
+        }, timeout)
+
+      for(const name of eventNames)
+      {
+        const channel = this.mapper.toProcessPersistedPidNameChannel(domain, pid, name)
+        this.redisSubscriber.pubsub.subscribe(channel, async (dto) =>
+        {
+          for(const name of eventNames)
+          {
+            try
+            {
+              const channel = this.mapper.toProcessPersistedPidNameChannel(domain, pid, name)
+              await this.redisSubscriber.pubsub.unsubscribe(channel)
+            }
+            catch(previousError)
+            {
+              clearTimeout(timeout_id)
+              const error = new Error('could not unsubscribe to event')
+              error.code  = 'E_EVENTSOURCE_CLIENT_WAIT_EXCEPTION'
+              error.chain = { previousError, domain, pid, name, eventNames }
+              reject(error)
+            }
+          }
+
+          try
+          {
+            const event = await this.readEventById(dto.id)
+            if(happyPaths.includes(event.name))
+            {
+              clearTimeout(timeout_id)
+              accept(event)
+            }
+            else
+            {
+              clearTimeout(timeout_id)
+              const error = new Error('exceptional event triggered')
+              error.code  = 'E_EVENTSOURCE_CLIENT_WAIT_EXCEPTION'
+              error.chain = { event, dto }
+              reject(error)
+            }
+          }
+          catch(previousError)
+          {
+            clearTimeout(timeout_id)
+            const error = new Error('could not read the event by id from redis')
+            error.code  = 'E_EVENTSOURCE_CLIENT_WAIT'
+            error.chain = { previousError, domain, pid, name, dto }
+            reject(error)
+          }
+        })
+      }
+    })
+  }
+
+  /**
    * @param {string} domain
    * @param {string} pid
    * @param {string} name

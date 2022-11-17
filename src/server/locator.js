@@ -1,9 +1,9 @@
 const
-  Process             = require('.'),
+  Process             = require('./process'),
   LocatorConstituent  = require('superhero/core/locator/constituent')
 
 /**
- * @memberof Eventsource.Server.Domain
+ * @memberof Eventsource.Server
  * @extends {superhero/core/locator/constituent}
  */
 class ProcessLocator extends LocatorConstituent
@@ -21,7 +21,7 @@ class ProcessLocator extends LocatorConstituent
       eventbus      = this.locator.locate('core/eventbus'),
       console       = this.locator.locate('core/console'),
       configuration = this.locator.locate('core/configuration'),
-      channels      = configuration.find('domain/process/channels'),
+      channels      = configuration.find('process/channels'),
       authKey       = configuration.find('client/redis/auth')
 
     return new Process(redis, publisher, subscriber, mapper, eventbus, console, channels, authKey)

@@ -7,38 +7,35 @@ module.exports =
   {
     bootstrap:
     {
-      'domain-process' : 'domain/process'
+      'set up subscribers' : 'process'
     },
     locator:
     {
-      'domain/*'  : __dirname + '/domain/*'
+      'process' : __dirname
     },
     eventbus:
     {
       'observers' : 
       {
-        'process-event-scheduled-cleared' : { 'domain/process':true },
-        'process-event-scheduled'         : { 'domain/process':true },
-        'process-error-scheduled'         : { 'domain/process':true },
-        'schedule-error'                  : { 'domain/process':true },
-        'process-event-queued'            : { 'domain/process':true },
-        'process-error-queued'            : { 'domain/process':true },
-        'process-error'                   : { 'domain/process':true }
+        'process-event-scheduled-cleared' : { 'process':true },
+        'process-event-scheduled'         : { 'process':true },
+        'process-error-scheduled'         : { 'process':true },
+        'schedule-error'                  : { 'process':true },
+        'process-event-queued'            : { 'process':true },
+        'process-error-queued'            : { 'process':true },
+        'process-error'                   : { 'process':true }
       }
     }
   },
-  domain:
+  process:
   {
-    process:
-    {
-      channels:
-      [
-        'process-event-scheduled',
-        'process-error-scheduled',
-        'process-event-queued',
-        'process-error-queued'
-      ]
-    }
+    channels:
+    [
+      'process-event-scheduled',
+      'process-error-scheduled',
+      'process-event-queued',
+      'process-error-queued'
+    ]
   },
   client:
   {
