@@ -1,15 +1,15 @@
 const
-  EventsourceClientDomainLocator  = require('.'),
-  LocatorConstituent              = require('superhero/core/locator/constituent')
+  EventsourceClientConsumer = require('.'),
+  LocatorConstituent        = require('superhero/core/locator/constituent')
 
 /**
  * @memberof Eventsource.Client
  * @extends {superhero/core/locator/constituent}
  */
-class EventsourceClientDomainLocatorLocator extends LocatorConstituent
+class EventsourceClientConsumerLocator extends LocatorConstituent
 {
   /**
-   * @returns {EventsourceClientDomainLocator}
+   * @returns {EventsourceClientConsumer}
    */
   locate()
   {
@@ -21,8 +21,8 @@ class EventsourceClientDomainLocatorLocator extends LocatorConstituent
       configuration = this.locator.locate('core/configuration'),
       options       = configuration.find('client/eventsource')
 
-    return new EventsourceClientDomainLocator(options, client, mapper, this.locator, string, console)
+    return new EventsourceClientConsumer(options, client, mapper, this.locator, string, console)
   }
 }
 
-module.exports = EventsourceClientDomainLocatorLocator
+module.exports = EventsourceClientConsumerLocator

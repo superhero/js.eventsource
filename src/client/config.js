@@ -7,8 +7,8 @@ module.exports =
   {
     bootstrap:
     {
-      'eventsource/client'                : 'eventsource/client',
-      'eventsource/client/domain-locator' : 'eventsource/client/domain-locator'
+      'eventsource/client'          : 'eventsource/client',
+      'eventsource/client/consumer' : 'eventsource/client/consumer'
     },
     dependency:
     {
@@ -17,8 +17,8 @@ module.exports =
     },
     locator:
     {
-      'eventsource/client'                : __dirname,
-      'eventsource/client/domain-locator' : __dirname + '/domain-locator'
+      'eventsource/client'          : __dirname,
+      'eventsource/client/consumer' : __dirname + '/consumer'
     },
     eventbus:
     {
