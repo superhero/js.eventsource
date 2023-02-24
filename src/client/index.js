@@ -102,7 +102,7 @@ class EventsourceClient
         {
           const error = new Error('exceptional event triggered')
           error.code  = 'E_EVENTSOURCE_CLIENT_WAIT_TIMEOUT'
-          error.chain = { event, dto }
+          error.chain = { domain, pid, happyPaths, exceptions, timeout }
           reject(error)
         }, timeout)
 
