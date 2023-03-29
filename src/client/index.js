@@ -320,8 +320,7 @@ class EventsourceClient
   }
 
   /**
-   * This function requires a migration of old data before use. The migration script is 
-   * expected to be included in future 3.0.0 release.
+   * This function requires a migration of old data before 3.0.0 release.
    * 
    * @param {string} pid process id
    * @param {string} [from] timestamp
@@ -346,6 +345,71 @@ class EventsourceClient
     catch(previousError)
     {
       const error = new Error('problem when reading the process eventlog from the eventsource only by pid')
+      error.code  = 'E_EVENTSOURCE_CLIENT_READ_EVENTLOG'
+      error.chain = { previousError, pid }
+      throw error
+    }
+  }
+
+  /**
+   * This function requires a migration of old data before 3.4.X release.
+   * 
+   * @param {string} ppid parent process id
+   * @param {string} [from] timestamp
+   * @param {string} [to] timestamp
+   * @param {boolean} [immutable] if the returned colelction should be immutable or not
+   */
+  async readEventlogByPpid(ppid, from, to, immutable)
+  {
+    try
+    {
+      const
+        phoppKey  = this.mapper.toProcessHistoryKeyIndexedOnlyByPpid(ppid),
+        scoreFrom = from  && this.mapper.toScore(from),
+        scoreTo   = to    && this.mapper.toScore(to),
+        history   = await this.redis.ordered.read(phoppKey, scoreFrom, scoreTo),
+        channel   = this.mapper.toProcessEventQueuedChannel(),
+        eventlog  = await Promise.all(history.map((id) => this.redis.stream.read(channel, id).then((event) => ({ ...event, id })))),
+        filtered  = eventlog.map((event) => this.mapper.toEventProcess(event, immutable))
+  
+      return filtered
+    }
+    catch(previousError)
+    {
+      const error = new Error('problem when reading the process eventlog from the eventsource only by ppid')
+      error.code  = 'E_EVENTSOURCE_CLIENT_READ_EVENTLOG'
+      error.chain = { previousError, pid }
+      throw error
+    }
+  }
+
+  /**
+   * This function requires a migration of old data before 3.4.X release.
+   * 
+   * @param {string} domain process name
+   * @param {string} ppid parent process id
+   * @param {string} [from] timestamp
+   * @param {string} [to] timestamp
+   * @param {boolean} [immutable] if the returned colelction should be immutable or not
+   */
+  async readEventlogByDomainAndPpid(domain, ppid, from, to, immutable)
+  {
+    try
+    {
+      const
+        phppKey   = this.mapper.toProcessHistoryKeyIndexedByPpid(domain, ppid),
+        scoreFrom = from  && this.mapper.toScore(from),
+        scoreTo   = to    && this.mapper.toScore(to),
+        history   = await this.redis.ordered.read(phppKey, scoreFrom, scoreTo),
+        channel   = this.mapper.toProcessEventQueuedChannel(),
+        eventlog  = await Promise.all(history.map((id) => this.redis.stream.read(channel, id).then((event) => ({ ...event, id })))),
+        filtered  = eventlog.map((event) => this.mapper.toEventProcess(event, immutable))
+  
+      return filtered
+    }
+    catch(previousError)
+    {
+      const error = new Error('problem when reading the process eventlog from the eventsource by domain and ppid')
       error.code  = 'E_EVENTSOURCE_CLIENT_READ_EVENTLOG'
       error.chain = { previousError, pid }
       throw error
@@ -799,6 +863,76 @@ class EventsourceClient
 
         await this.redis.ordered.has(phopKey, id)
         && await session.ordered.write(phopKey, id, score)
+
+        await session.transaction.commit()
+
+        this.console.color('green').log(`✔ ${pid} → ${domain}/${name} → ${id} → ${timestamp}`)
+      }
+      catch(previousError)
+      {
+        const error = new Error(`could not migrate process`)
+        error.code  = 'E_EVENTSOURCE_MIGRATE_PROCESS'
+        error.chain = { previousError, id, event, attempt }
+        throw error
+      }
+      finally
+      {
+        await session.connection.quit()
+      }
+    }));
+
+    this.console.color('blue').log('✔ the migration process has finished')
+  }
+
+  /**
+   * To migrate data written by version 3 of this library to version 3.4.X.
+   * 
+   * @param {number} [attempt=1] if you, for what ever reason, need to re-attempt the migration from 
+   * start, the attempt argument will be used to compose the read-group used to iterate through 
+   * the event stream.
+   * @param {Array<number>} [rejected] an optional array of id's, if needed to reject migration of
+   * one or more id's.
+   */
+  async migrateEventsourceStreamFromV3ToV3_4(attempt=1, rejected=[])
+  {
+    const
+      stream = this.mapper.toProcessEventQueuedChannel(),
+      group  = 'migrate-v3-to-v3_4-attempt-' + attempt
+
+    await this.redis.stream.lazyloadConsumerGroup(stream, group, 0)
+
+    while(await this.redis.stream.readGroup(stream, group, async (id, event) =>
+    {
+      // Possible to reject the migration for specific ID
+      // This should never be necessery to use, but for all does reasons that I
+      // can not predict I decided to add this very small functionality
+      // ...to reject migration for specific ID's
+      if(rejected.includes(id))
+      {
+        return
+      }
+
+      this.console.color('blue').log(`- ${event.pid}`)
+      const session = this.redis.createSession()
+
+      try
+      {
+        const
+          process   = this.mapper.toQueryProcess(event),
+          { timestamp, ppid } = process,
+          phoppKey  = this.mapper.toProcessHistoryKeyIndexedOnlyByPpid(ppid),
+          phppKey   = this.mapper.toProcessHistoryKeyIndexedByPpid(domain, ppid),
+          score     = this.mapper.toScore(timestamp)
+
+        await session.connection.connect()
+        await session.auth()
+        await session.transaction.begin()
+
+        await this.redis.ordered.has(phoppKey, id)
+        && await session.ordered.write(phoppKey, id, score)
+
+        await this.redis.ordered.has(phppKey, id)
+        && await session.ordered.write(phppKey, id, score)
 
         await session.transaction.commit()
 

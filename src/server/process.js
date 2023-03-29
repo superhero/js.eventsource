@@ -177,10 +177,12 @@ class Process
     const 
       broadcast   = event.broadcast === undefined ? true : !!event.broadcast,
       process     = this.mapper.toQueryProcess(event),
-      { timestamp, domain, pid, name } = process,
+      { timestamp, domain, pid, ppid, name } = process,
       phKey       = this.mapper.toProcessHistoryKey(domain, pid),
       phonKey     = this.mapper.toProcessHistoryKeyIndexedOnlyByName(name),
       phopKey     = this.mapper.toProcessHistoryKeyIndexedOnlyByPid(pid),
+      phoppKey    = this.mapper.toProcessHistoryKeyIndexedOnlyByPpid(ppid),
+      phppKey     = this.mapper.toProcessHistoryKeyIndexedByPpid(domain, ppid),
       phnKey      = this.mapper.toProcessHistoryKeyIndexedByName(domain, pid, name),
       score       = this.mapper.toScore(timestamp),
       session     = this.redis.createSession()
@@ -195,6 +197,13 @@ class Process
       await session.ordered.write(phnKey,   id, score)
       await session.ordered.write(phonKey,  id, score)
       await session.ordered.write(phopKey,  id, score)
+
+      if(ppid)
+      {
+        await session.ordered.write(phoppKey, id, score)
+        await session.ordered.write(phppKey,  id, score)
+      }
+
       await session.transaction.commit()
     }
     catch(previousError)

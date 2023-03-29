@@ -58,6 +58,16 @@ class EventsourceMapper
     return `phop:${pid}`
   }
 
+  toProcessHistoryKeyIndexedOnlyByPpid(ppid)
+  {
+    return `phopp:${ppid}`
+  }
+
+  toProcessHistoryKeyIndexedByPpid(domain, ppid)
+  {
+    return `phpp:${domain}:${ppid}`
+  }
+
   toProcessEventQueuedChannel()
   {
     return 'process-event-queued'
