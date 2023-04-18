@@ -16,6 +16,11 @@ class Process
     this.authKey          = authKey
   }
 
+  /**
+   * Initializes the process by connecting to Redis publisher and subscriber,
+   * authenticating if necessary, subscribing to the channels, and bootstrapping
+   * the process schedule.
+   */
   async bootstrap()
   {
     await this.redisPublisher.connection.connect()
@@ -23,6 +28,7 @@ class Process
 
     this.console.color('cyan').log('✔ eventsource connected "pubsub" sockets')
 
+    // if authentication key is present, authenticate Redis publisher and subscriber
     if(this.authKey)
     {
       await this.redisPublisher.auth()
@@ -43,6 +49,10 @@ class Process
     await this.bootstrapProcessSchedule()
   }
 
+  /**
+   * Initializes the process schedule by reading the minimum scheduled timestamp
+   * from Redis and calling the onProcessEventScheduled method with it.
+   */
   async bootstrapProcessSchedule()
   {
     const
@@ -53,6 +63,13 @@ class Process
     timestamp && this.onProcessEventScheduled(timestamp)
   }
 
+  /**
+   * Handles the scheduling of a process with the given timestamp.
+   * If an earlier task is already scheduled, logs a message and returns.
+   * Otherwise, updates the schedule queue and sets a timeout for the process.
+   *
+   * @param {string|number} timestamp - The timestamp for the scheduled process.
+   */
   onProcessEventScheduled(timestamp)
   {
     timestamp = new Date(timestamp).getTime()
@@ -175,17 +192,18 @@ class Process
   async persistProcess(id, event)
   {
     const 
-      broadcast   = event.broadcast === undefined ? true : !!event.broadcast,
-      process     = this.mapper.toQueryProcess(event),
+      broadcast = event.broadcast === undefined ? true : !!event.broadcast,
+      process   = this.mapper.toQueryProcess(event),
       { timestamp, domain, pid, ppid, name } = process,
-      phKey       = this.mapper.toProcessHistoryKey(domain, pid),
-      phonKey     = this.mapper.toProcessHistoryKeyIndexedOnlyByName(name),
-      phopKey     = this.mapper.toProcessHistoryKeyIndexedOnlyByPid(pid),
-      phoppKey    = this.mapper.toProcessHistoryKeyIndexedOnlyByPpid(ppid),
-      phppKey     = this.mapper.toProcessHistoryKeyIndexedByPpid(domain, ppid),
-      phnKey      = this.mapper.toProcessHistoryKeyIndexedByName(domain, pid, name),
-      score       = this.mapper.toScore(timestamp),
-      session     = this.redis.createSession()
+      pdKey     = this.mapper.toProcessDataKey(),
+      phKey     = this.mapper.toProcessHistoryKey(domain, pid),
+      phonKey   = this.mapper.toProcessHistoryKeyIndexedOnlyByName(name),
+      phopKey   = this.mapper.toProcessHistoryKeyIndexedOnlyByPid(pid),
+      phoppKey  = this.mapper.toProcessHistoryKeyIndexedOnlyByPpid(ppid),
+      phppKey   = this.mapper.toProcessHistoryKeyIndexedByPpid(domain, ppid),
+      phnKey    = this.mapper.toProcessHistoryKeyIndexedByName(domain, pid, name),
+      score     = this.mapper.toScore(timestamp),
+      session   = this.redis.createSession()
 
     await session.connection.connect()
 
@@ -193,6 +211,7 @@ class Process
     {
       await session.auth()
       await session.transaction.begin()
+      await session.hash.write(pdKey, id, process)
       await session.ordered.write(phKey,    id, score)
       await session.ordered.write(phnKey,   id, score)
       await session.ordered.write(phonKey,  id, score)

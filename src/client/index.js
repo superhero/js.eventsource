@@ -53,7 +53,8 @@ class EventsourceClient
     {
       const
         channel = this.mapper.toProcessEventQueuedChannel(),
-        process = await this.redis.stream.read(channel, id),
+        pdKey   = this.mapper.toProcessDataKey(),
+        process = await this.redis.hash.read(pdKey, id),
         { domain, pid, name } = process,
         phKey   = this.mapper.toProcessHistoryKey(domain, pid),
         phnKey  = this.mapper.toProcessHistoryKeyIndexedByName(domain, pid, name)
@@ -61,6 +62,7 @@ class EventsourceClient
       await this.redis.ordered.deleteValue(phKey,  id)
       await this.redis.ordered.deleteValue(phnKey, id)
       await this.redis.stream.delete(channel, id)
+      await this.redis.hash.delete(pdKey, id)
 
       return response
     }
@@ -304,8 +306,8 @@ class EventsourceClient
         scoreFrom = from  && this.mapper.toScore(from),
         scoreTo   = to    && this.mapper.toScore(to),
         history   = await this.redis.ordered.read(phKey, scoreFrom, scoreTo),
-        channel   = this.mapper.toProcessEventQueuedChannel(),
-        eventlog  = await Promise.all(history.map((id) => this.redis.stream.read(channel, id).then((event) => ({ ...event, id })))),
+        pdKey     = this.mapper.toProcessDataKey(),
+        eventlog  = await Promise.all(history.map((id) => this.redis.hash.read(pdKey, id).then((event) => ({ ...event, id })))),
         filtered  = eventlog.map((event) => this.mapper.toEventProcess(event, immutable))
 
       return filtered
@@ -336,8 +338,8 @@ class EventsourceClient
         scoreFrom = from  && this.mapper.toScore(from),
         scoreTo   = to    && this.mapper.toScore(to),
         history   = await this.redis.ordered.read(phpKey, scoreFrom, scoreTo),
-        channel   = this.mapper.toProcessEventQueuedChannel(),
-        eventlog  = await Promise.all(history.map((id) => this.redis.stream.read(channel, id).then((event) => ({ ...event, id })))),
+        pdKey     = this.mapper.toProcessDataKey(),
+        eventlog  = await Promise.all(history.map((id) => this.redis.hash.read(pdKey, id).then((event) => ({ ...event, id })))),
         filtered  = eventlog.map((event) => this.mapper.toEventProcess(event, immutable))
   
       return filtered
@@ -368,8 +370,8 @@ class EventsourceClient
         scoreFrom = from  && this.mapper.toScore(from),
         scoreTo   = to    && this.mapper.toScore(to),
         history   = await this.redis.ordered.read(phoppKey, scoreFrom, scoreTo),
-        channel   = this.mapper.toProcessEventQueuedChannel(),
-        eventlog  = await Promise.all(history.map((id) => this.redis.stream.read(channel, id).then((event) => ({ ...event, id })))),
+        pdKey     = this.mapper.toProcessDataKey(),
+        eventlog  = await Promise.all(history.map((id) => this.redis.hash.read(pdKey, id).then((event) => ({ ...event, id })))),
         filtered  = eventlog.map((event) => this.mapper.toEventProcess(event, immutable))
   
       return filtered
@@ -401,8 +403,8 @@ class EventsourceClient
         scoreFrom = from  && this.mapper.toScore(from),
         scoreTo   = to    && this.mapper.toScore(to),
         history   = await this.redis.ordered.read(phppKey, scoreFrom, scoreTo),
-        channel   = this.mapper.toProcessEventQueuedChannel(),
-        eventlog  = await Promise.all(history.map((id) => this.redis.stream.read(channel, id).then((event) => ({ ...event, id })))),
+        pdKey     = this.mapper.toProcessDataKey(),
+        eventlog  = await Promise.all(history.map((id) => this.redis.hash.read(pdKey, id).then((event) => ({ ...event, id })))),
         filtered  = eventlog.map((event) => this.mapper.toEventProcess(event, immutable))
   
       return filtered
@@ -434,8 +436,8 @@ class EventsourceClient
         scoreFrom = from  && this.mapper.toScore(from),
         scoreTo   = to    && this.mapper.toScore(to),
         history   = await this.redis.ordered.read(phonKey, scoreFrom, scoreTo),
-        channel   = this.mapper.toProcessEventQueuedChannel(),
-        eventlog  = await Promise.all(history.map((id) => this.redis.stream.read(channel, id).then((event) => ({ ...event, id })))),
+        pdKey     = this.mapper.toProcessDataKey(),
+        eventlog  = await Promise.all(history.map((id) => this.redis.hash.read(pdKey, id).then((event) => ({ ...event, id })))),
         filtered  = eventlog.map((event) => this.mapper.toEventProcess(event, immutable))
   
       return filtered
@@ -466,8 +468,8 @@ class EventsourceClient
         scoreFrom = from  && this.mapper.toScore(from),
         scoreTo   = to    && this.mapper.toScore(to),
         history   = await this.redis.ordered.read(phnKey, scoreFrom, scoreTo),
-        channel   = this.mapper.toProcessEventQueuedChannel(),
-        eventlog  = await Promise.all(history.map((id) => this.redis.stream.read(channel, id).then((event) => ({ ...event, id })))),
+        pdKey     = this.mapper.toProcessDataKey(),
+        eventlog  = await Promise.all(history.map((id) => this.redis.hash.read(pdKey, id).then((event) => ({ ...event, id })))),
         filtered  = eventlog.map((event) => this.mapper.toEventProcess(event, immutable))
   
       return filtered
@@ -523,7 +525,7 @@ class EventsourceClient
   {
     try
     {
-      const channel = this.mapper.toProcessEventQueuedChannel()
+      const channel = this.mapper.toProcessPersistedChannel()
       await this.redis.stream.lazyloadConsumerGroup(channel, group, id)
       return await this.redis.stream.readGroup(channel, group)
     }
@@ -579,8 +581,8 @@ class EventsourceClient
     try
     {
       const 
-        channel   = this.mapper.toProcessEventQueuedChannel(),
-        response  = await this.redis.stream.read(channel, id)
+        pdKey     = this.mapper.toProcessDataKey(),
+        response  = await this.redis.hash.read(pdKey, id)
 
       return { ...response, id }
     }
@@ -822,12 +824,12 @@ class EventsourceClient
   async migrateEventsourceStreamFromV2ToV3(attempt=1, rejected=[])
   {
     const
-      stream = this.mapper.toProcessEventQueuedChannel(),
+      stream = this.mapper.toProcessPersistedChannel(),
       group  = 'migrate-v2-to-v3-attempt-' + attempt
 
     await this.redis.stream.lazyloadConsumerGroup(stream, group, 0)
 
-    while(await this.redis.stream.readGroup(stream, group, async (id, event) =>
+    while(await this.redis.stream.readGroup(stream, group, async (id) =>
     {
       // Possible to reject the migration for specific ID
       // This should never be necessery to use, but for all does reasons that I
@@ -838,6 +840,7 @@ class EventsourceClient
         return
       }
 
+      const event = await this.readEventById(id)
       this.console.color('blue').log(`- ${event.pid}`)
       const session = this.redis.createSession()
 
@@ -896,12 +899,12 @@ class EventsourceClient
   async migrateEventsourceStreamFromV3ToV3_4(attempt=1, rejected=[])
   {
     const
-      stream = this.mapper.toProcessEventQueuedChannel(),
+      stream = this.mapper.toProcessPersistedChannel(),
       group  = 'migrate-v3-to-v3_4-attempt-' + attempt
 
     await this.redis.stream.lazyloadConsumerGroup(stream, group, 0)
 
-    while(await this.redis.stream.readGroup(stream, group, async (id, event) =>
+    while(await this.redis.stream.readGroup(stream, group, async (id) =>
     {
       // Possible to reject the migration for specific ID
       // This should never be necessery to use, but for all does reasons that I
@@ -912,6 +915,7 @@ class EventsourceClient
         return
       }
 
+      const event = await this.readEventById(id)
       this.console.color('blue').log(`- ${event.pid}`)
       const session = this.redis.createSession()
 
@@ -933,6 +937,72 @@ class EventsourceClient
 
         await this.redis.ordered.has(phppKey, id)
         && await session.ordered.write(phppKey, id, score)
+
+        await session.transaction.commit()
+
+        this.console.color('green').log(`✔ ${pid} → ${domain}/${name} → ${id} → ${timestamp}`)
+      }
+      catch(previousError)
+      {
+        const error = new Error(`could not migrate process`)
+        error.code  = 'E_EVENTSOURCE_MIGRATE_PROCESS'
+        error.chain = { previousError, id, event, attempt }
+        throw error
+      }
+      finally
+      {
+        await session.connection.quit()
+      }
+    }));
+
+    this.console.color('blue').log('✔ the migration process has finished')
+  }
+
+  /**
+   * To migrate data written by version 3.4 of this library to version 3.5.
+   * 
+   * @param {number} [attempt=1] if you, for what ever reason, need to re-attempt the migration from 
+   * start, the attempt argument will be used to compose the read-group used to iterate through 
+   * the event stream.
+   * @param {Array<number>} [rejected] an optional array of id's, if needed to reject migration of
+   * one or more id's.
+   */
+  async migrateEventsourceStreamFromV3_4ToV3_5(attempt=1, rejected=[])
+  {
+    const
+      stream = this.mapper.toProcessPersistedChannel(),
+      group  = 'migrate-v3_4-to-v3_5-attempt-' + attempt
+
+    await this.redis.stream.lazyloadConsumerGroup(stream, group, 0)
+
+    while(await this.redis.stream.readGroup(stream, group, async (id) =>
+    {
+      // Possible to reject the migration for specific ID
+      // This should never be necessery to use, but for all does reasons that I
+      // can not predict I decided to add this very small functionality
+      // ...to reject migration for specific ID's
+      if(rejected.includes(id))
+      {
+        return
+      }
+
+      const event = await this.readEventById(id)
+      this.console.color('blue').log(`- ${event.pid}`)
+      const session = this.redis.createSession()
+
+      try
+      {
+        const
+          process = this.mapper.toQueryProcess(event),
+          pdKey   = this.mapper.toProcessDataKey(),
+          { timestamp } = process
+
+        await session.connection.connect()
+        await session.auth()
+        await session.transaction.begin()
+
+        await this.redis.hash.has(pdKey, id)
+        && await session.hash.write(pdKey, id, process)
 
         await session.transaction.commit()
 

@@ -36,6 +36,11 @@ class EventsourceMapper
     return `ps:${domain}:${pid}`
   }
 
+  toProcessDataKey()
+  {
+    return `pd`
+  }
+
   toProcessHistoryKey(domain, pid)
   {
     domain = this.toSeperatedLowerCase(domain)
