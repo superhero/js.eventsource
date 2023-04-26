@@ -192,18 +192,19 @@ class Process
   async persistProcess(id, event)
   {
     const 
-      broadcast = event.broadcast === undefined ? true : !!event.broadcast,
-      process   = this.mapper.toQueryProcess(event),
+      broadcast     = event.broadcast === undefined ? true : !!event.broadcast,
+      process       = this.mapper.toQueryProcess(event),
       { timestamp, domain, pid, ppid, name } = process,
-      pdKey     = this.mapper.toProcessDataKey(),
-      phKey     = this.mapper.toProcessHistoryKey(domain, pid),
-      phonKey   = this.mapper.toProcessHistoryKeyIndexedOnlyByName(name),
-      phopKey   = this.mapper.toProcessHistoryKeyIndexedOnlyByPid(pid),
-      phoppKey  = this.mapper.toProcessHistoryKeyIndexedOnlyByPpid(ppid),
-      phppKey   = this.mapper.toProcessHistoryKeyIndexedByPpid(domain, ppid),
-      phnKey    = this.mapper.toProcessHistoryKeyIndexedByName(domain, pid, name),
-      score     = this.mapper.toScore(timestamp),
-      session   = this.redis.createSession()
+      pdKey         = this.mapper.toProcessDataKey(),
+      phKey         = this.mapper.toProcessHistoryKey(domain, pid),
+      phonKey       = this.mapper.toProcessHistoryKeyIndexedOnlyByName(name),
+      phopKey       = this.mapper.toProcessHistoryKeyIndexedOnlyByPid(pid),
+      phoppKey      = this.mapper.toProcessHistoryKeyIndexedOnlyByPpid(ppid),
+      phppKey       = this.mapper.toProcessHistoryKeyIndexedByPpid(domain, ppid),
+      phnKey        = this.mapper.toProcessHistoryKeyIndexedByName(domain, pid, name),
+      queuedChannel = this.mapper.toProcessEventQueuedChannel(),
+      score         = this.mapper.toScore(timestamp),
+      session       = this.redis.createSession()
 
     await session.connection.connect()
 
@@ -216,6 +217,7 @@ class Process
       await session.ordered.write(phnKey,   id, score)
       await session.ordered.write(phonKey,  id, score)
       await session.ordered.write(phopKey,  id, score)
+      await session.stream.delete(queuedChannel, id)
 
       if(ppid)
       {

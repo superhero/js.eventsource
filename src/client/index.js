@@ -818,10 +818,10 @@ class EventsourceClient
    * @param {number} [attempt=1] if you, for what ever reason, need to re-attempt the migration from 
    * start, the attempt argument will be used to compose the read-group used to iterate through 
    * the event stream.
-   * @param {Array<number>} [rejected] an optional array of id's, if needed to reject migration of
+   * @param {Array<number>} [reject] an optional array of id's, if needed to reject migration of
    * one or more id's.
    */
-  async migrateEventsourceStreamFromV2ToV3(attempt=1, rejected=[])
+  async migrateEventsourceStreamFromV2ToV3(attempt=1, reject=[])
   {
     const
       stream = this.mapper.toProcessPersistedChannel(),
@@ -835,7 +835,7 @@ class EventsourceClient
       // This should never be necessery to use, but for all does reasons that I
       // can not predict I decided to add this very small functionality
       // ...to reject migration for specific ID's
-      if(rejected.includes(id))
+      if(reject.includes(id))
       {
         return
       }
@@ -893,10 +893,10 @@ class EventsourceClient
    * @param {number} [attempt=1] if you, for what ever reason, need to re-attempt the migration from 
    * start, the attempt argument will be used to compose the read-group used to iterate through 
    * the event stream.
-   * @param {Array<number>} [rejected] an optional array of id's, if needed to reject migration of
+   * @param {Array<number>} [reject] an optional array of id's, if needed to reject migration of
    * one or more id's.
    */
-  async migrateEventsourceStreamFromV3ToV3_4(attempt=1, rejected=[])
+  async migrateEventsourceStreamFromV3ToV3_4(attempt=1, reject=[])
   {
     const
       stream = this.mapper.toProcessPersistedChannel(),
@@ -910,7 +910,7 @@ class EventsourceClient
       // This should never be necessery to use, but for all does reasons that I
       // can not predict I decided to add this very small functionality
       // ...to reject migration for specific ID's
-      if(rejected.includes(id))
+      if(reject.includes(id))
       {
         return
       }
@@ -964,10 +964,10 @@ class EventsourceClient
    * @param {number} [attempt=1] if you, for what ever reason, need to re-attempt the migration from 
    * start, the attempt argument will be used to compose the read-group used to iterate through 
    * the event stream.
-   * @param {Array<number>} [rejected] an optional array of id's, if needed to reject migration of
+   * @param {Array<number>} [reject] an optional array of id's, if needed to reject migration of
    * one or more id's.
    */
-  async migrateEventsourceStreamFromV3_4ToV3_5(attempt=1, rejected=[])
+  async migrateEventsourceStreamFromV3_4ToV3_5(attempt=1, reject=[])
   {
     const
       stream = this.mapper.toProcessPersistedChannel(),
@@ -981,7 +981,7 @@ class EventsourceClient
       // This should never be necessery to use, but for all does reasons that I
       // can not predict I decided to add this very small functionality
       // ...to reject migration for specific ID's
-      if(rejected.includes(id))
+      if(reject.includes(id))
       {
         return
       }
@@ -1003,6 +1003,81 @@ class EventsourceClient
 
         await this.redis.hash.has(pdKey, id)
         && await session.hash.write(pdKey, id, process)
+
+        await session.transaction.commit()
+
+        this.console.color('green').log(`✔ ${pid} → ${domain}/${name} → ${id} → ${timestamp}`)
+      }
+      catch(previousError)
+      {
+        const error = new Error(`could not migrate process`)
+        error.code  = 'E_EVENTSOURCE_MIGRATE_PROCESS'
+        error.chain = { previousError, id, event, attempt }
+        throw error
+      }
+      finally
+      {
+        await session.connection.quit()
+      }
+    }));
+
+    this.console.color('blue').log('✔ the migration process has finished')
+  }
+
+  /**
+   * To migrate data written by version 3.5 of this library to version 3.6.
+   * 
+   * @param {number} [attempt=1] if you, for what ever reason, need to re-attempt the migration from 
+   * start, the attempt argument will be used to compose the read-group used to iterate through 
+   * the event stream.
+   * @param {Array<number>} [reject] an optional array of id's, if needed to reject migration of
+   * one or more id's.
+   */
+  async migrateEventsourceStreamFromV3_5ToV3_6(attempt=1, reject=[])
+  {
+    const
+      stream = this.mapper.toProcessPersistedChannel(),
+      group  = 'migrate-v3_5-to-v3_6-attempt-' + attempt
+
+    await this.redis.stream.lazyloadConsumerGroup(stream, group, 0)
+
+    while(await this.redis.stream.readGroup(stream, group, async (id) =>
+    {
+      // Possible to reject the migration for specific ID
+      // This should never be necessery to use, but for all does reasons that I
+      // can not predict I decided to add this very small functionality
+      // ...to reject migration for specific ID's
+      if(reject.includes(id))
+      {
+        return
+      }
+
+      const event = await this.readEventById(id)
+      this.console.color('blue').log(`- ${event.pid}`)
+      const session = this.redis.createSession()
+
+      try
+      {
+        const
+          process       = this.mapper.toQueryProcess(event),
+          pdKey         = this.mapper.toProcessDataKey(),
+          queuedChannel = this.mapper.toProcessEventQueuedChannel(),
+          { timestamp } = process
+
+        await session.connection.connect()
+        await session.auth()
+        await session.transaction.begin()
+
+        if(false === await this.redis.hash.has(pdKey, id))
+        {
+          const error = new Error('the process data has not been written to the hash index, '
+                                + 'deleting it from the stream could lead to permanent loss of data')
+          error.code  = 'E_EVENTSOURCE_MIGRATE_PROCESS_MISSING_DATA'
+          error.chain = { id, event }
+          throw error
+        }
+
+        await session.stream.delete(queuedChannel, id)
 
         await session.transaction.commit()
 
