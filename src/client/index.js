@@ -985,7 +985,7 @@ class EventsourceClient
         return
       }
 
-      const event = await this.readEventById(id) || dto
+      const event = dto || await this.readEventById(id)
       this.console.color('blue').log(`- ${event.pid}`)
       const session = this.redis.createSession()
 
@@ -1040,7 +1040,7 @@ class EventsourceClient
 
     await this.redis.stream.lazyloadConsumerGroup(stream, group, 0)
 
-    while(await this.redis.stream.readGroup(stream, group, async (id) =>
+    while(await this.redis.stream.readGroup(stream, group, async (id, dto) =>
     {
       // Possible to reject the migration for specific ID
       // This should never be necessery to use, but for all does reasons that I
@@ -1051,7 +1051,7 @@ class EventsourceClient
         return
       }
 
-      const event = await this.readEventById(id)
+      const event = dto || await this.readEventById(id)
       this.console.color('blue').log(`- ${event.pid}`)
       const session = this.redis.createSession()
 
