@@ -306,8 +306,7 @@ class EventsourceClient
         scoreFrom = from  && this.mapper.toScore(from),
         scoreTo   = to    && this.mapper.toScore(to),
         history   = await this.redis.ordered.read(phKey, scoreFrom, scoreTo),
-        pdKey     = this.mapper.toProcessDataKey(),
-        eventlog  = await Promise.all(history.map((id) => this.redis.hash.read(pdKey, id).then((event) => ({ ...event, id })))),
+        eventlog  = await Promise.all(history.map((id) => this.readEventById(id))),
         filtered  = eventlog.map((event) => this.mapper.toEventProcess(event, immutable))
 
       return filtered
@@ -824,12 +823,12 @@ class EventsourceClient
   async migrateEventsourceStreamFromV2ToV3(attempt=1, reject=[])
   {
     const
-      stream = this.mapper.toProcessPersistedChannel(),
+      stream = this.mapper.toProcessEventQueuedChannel(),
       group  = 'migrate-v2-to-v3-attempt-' + attempt
 
     await this.redis.stream.lazyloadConsumerGroup(stream, group, 0)
 
-    while(await this.redis.stream.readGroup(stream, group, async (id) =>
+    while(await this.redis.stream.readGroup(stream, group, async (id, dto) =>
     {
       // Possible to reject the migration for specific ID
       // This should never be necessery to use, but for all does reasons that I
@@ -840,7 +839,7 @@ class EventsourceClient
         return
       }
 
-      const event = await this.readEventById(id)
+      const event = await this.readEventById(id) || dto
       this.console.color('blue').log(`- ${event.pid}`)
       const session = this.redis.createSession()
 
@@ -899,12 +898,12 @@ class EventsourceClient
   async migrateEventsourceStreamFromV3ToV3_4(attempt=1, reject=[])
   {
     const
-      stream = this.mapper.toProcessPersistedChannel(),
+      stream = this.mapper.toProcessEventQueuedChannel(),
       group  = 'migrate-v3-to-v3_4-attempt-' + attempt
 
     await this.redis.stream.lazyloadConsumerGroup(stream, group, 0)
 
-    while(await this.redis.stream.readGroup(stream, group, async (id) =>
+    while(await this.redis.stream.readGroup(stream, group, async (id, dto) =>
     {
       // Possible to reject the migration for specific ID
       // This should never be necessery to use, but for all does reasons that I
@@ -915,7 +914,7 @@ class EventsourceClient
         return
       }
 
-      const event = await this.readEventById(id)
+      const event = dto || await this.readEventById(id)
       this.console.color('blue').log(`- ${event.pid}`)
       const session = this.redis.createSession()
 
@@ -923,7 +922,7 @@ class EventsourceClient
       {
         const
           process   = this.mapper.toQueryProcess(event),
-          { timestamp, ppid } = process,
+          { domain, timestamp, ppid, pid, name } = process,
           phoppKey  = this.mapper.toProcessHistoryKeyIndexedOnlyByPpid(ppid),
           phppKey   = this.mapper.toProcessHistoryKeyIndexedByPpid(domain, ppid),
           score     = this.mapper.toScore(timestamp)
@@ -970,12 +969,12 @@ class EventsourceClient
   async migrateEventsourceStreamFromV3_4ToV3_5(attempt=1, reject=[])
   {
     const
-      stream = this.mapper.toProcessPersistedChannel(),
+      stream = this.mapper.toProcessEventQueuedChannel(),
       group  = 'migrate-v3_4-to-v3_5-attempt-' + attempt
 
     await this.redis.stream.lazyloadConsumerGroup(stream, group, 0)
 
-    while(await this.redis.stream.readGroup(stream, group, async (id) =>
+    while(await this.redis.stream.readGroup(stream, group, async (id, dto) =>
     {
       // Possible to reject the migration for specific ID
       // This should never be necessery to use, but for all does reasons that I
@@ -986,7 +985,7 @@ class EventsourceClient
         return
       }
 
-      const event = await this.readEventById(id)
+      const event = await this.readEventById(id) || dto
       this.console.color('blue').log(`- ${event.pid}`)
       const session = this.redis.createSession()
 
@@ -995,7 +994,7 @@ class EventsourceClient
         const
           process = this.mapper.toQueryProcess(event),
           pdKey   = this.mapper.toProcessDataKey(),
-          { timestamp } = process
+          { timestamp, pid, domain, name } = process
 
         await session.connection.connect()
         await session.auth()
@@ -1036,7 +1035,7 @@ class EventsourceClient
   async migrateEventsourceStreamFromV3_5ToV3_6(attempt=1, reject=[])
   {
     const
-      stream = this.mapper.toProcessPersistedChannel(),
+      stream = this.mapper.toProcessEventQueuedChannel(),
       group  = 'migrate-v3_5-to-v3_6-attempt-' + attempt
 
     await this.redis.stream.lazyloadConsumerGroup(stream, group, 0)
@@ -1062,7 +1061,7 @@ class EventsourceClient
           process       = this.mapper.toQueryProcess(event),
           pdKey         = this.mapper.toProcessDataKey(),
           queuedChannel = this.mapper.toProcessEventQueuedChannel(),
-          { timestamp } = process
+          { timestamp, pid, domain, name } = process
 
         await session.connection.connect()
         await session.auth()
