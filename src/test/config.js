@@ -7,7 +7,7 @@ module.exports =
   {
     bootstrap:
     {
-      'eventsource/client/domain-locator' : false
+      'eventsource/client/consumer' : false
     }
   },
   infrastructure:
