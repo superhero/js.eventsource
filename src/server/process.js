@@ -203,29 +203,23 @@ class Process
       phppKey       = this.mapper.toProcessHistoryKeyIndexedByPpid(domain, ppid),
       phnKey        = this.mapper.toProcessHistoryKeyIndexedByName(domain, pid, name),
       queuedChannel = this.mapper.toProcessEventQueuedChannel(),
-      score         = this.mapper.toScore(timestamp),
-      session       = this.redis.createSession()
-
-    await session.connection.connect()
+      score         = this.mapper.toScore(timestamp)
 
     try
     {
-      await session.auth()
-      await session.transaction.begin()
-      await session.hash.write(pdKey, id, process)
-      await session.ordered.write(phKey,    id, score)
-      await session.ordered.write(phnKey,   id, score)
-      await session.ordered.write(phonKey,  id, score)
-      await session.ordered.write(phopKey,  id, score)
-      await session.stream.delete(queuedChannel, id)
+      await this.redis.hash.write(pdKey, id, process)
+      await this.redis.ordered.write(phKey,   id, score)
+      await this.redis.ordered.write(phnKey,  id, score)
+      await this.redis.ordered.write(phonKey, id, score)
+      await this.redis.ordered.write(phopKey, id, score)
 
       if(ppid)
       {
-        await session.ordered.write(phoppKey, id, score)
-        await session.ordered.write(phppKey,  id, score)
+        await this.redis.ordered.write(phoppKey, id, score)
+        await this.redis.ordered.write(phppKey,  id, score)
       }
 
-      await session.transaction.commit()
+      await this.redis.stream.delete(queuedChannel, id)
     }
     catch(previousError)
     {
@@ -233,10 +227,6 @@ class Process
       error.code  = 'E_EVENTSOURCE_PERSIST_PROCESS'
       error.chain = { previousError, id, event }
       throw error
-    }
-    finally
-    {
-      await session.connection.quit()
     }
 
     if(broadcast)

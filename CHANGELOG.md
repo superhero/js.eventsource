@@ -1,3 +1,6 @@
+3.6.5
+- Removed the transaction at the process core that was used to index the refferences used when reading from the solution. This will make it easier to work with the solution in a clustered environment.
+
 3.4.0
 - Added `client.readEventlogByDomainAndPpid(domain, ppid, [from], [to], [immutable])`, allows to read the eventlog by parent process id, without providing the domain name.
 - Added `client.readEventlogByPpid(ppid, [from], [to], [immutable])`, allows to read the eventlog by parent process id, without providing the domain name.
