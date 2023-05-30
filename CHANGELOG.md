@@ -1,3 +1,6 @@
+3.7.0
+- Removed the transaction when doing scheduled activity, to ease the use of the service in a clustered envirement.
+
 3.6.5
 - Removed the transaction at the process core that was used to index the refferences used when reading from the solution. This will make it easier to work with the solution in a clustered environment.
 
