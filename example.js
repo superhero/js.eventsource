@@ -11,11 +11,14 @@ core.locate('core/bootstrap').bootstrap().then(async () =>
 {
   const
     group       = 'replicator-example',
-    eventsource = core.locate('eventsource/client')
+    eventsource = core.locate('eventsource/client'),
+    domain      = '*',
+    eventname   = '*',
+    channel     = eventsource.mapper.toProcessPersistedChannel(domain, eventname)
 
   let process
 
-  while(process = await eventsource.readStream(group, id))
+  while(process = await eventsource.readStreamByChannel(group, channel, id))
   {
     const event = await eventsource.readEventById(id)
 
