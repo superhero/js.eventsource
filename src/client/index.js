@@ -858,13 +858,13 @@ class EventsourceClient
         await session.transaction.begin()
 
         await this.redis.ordered.has(phnKey, id)
-        && await session.ordered.write(phnKey, id, score)
+        || await session.ordered.write(phnKey, id, score)
 
         await this.redis.ordered.has(phonKey, id)
-        && await session.ordered.write(phonKey, id, score)
+        || await session.ordered.write(phonKey, id, score)
 
         await this.redis.ordered.has(phopKey, id)
-        && await session.ordered.write(phopKey, id, score)
+        || await session.ordered.write(phopKey, id, score)
 
         await session.transaction.commit()
 
@@ -932,10 +932,10 @@ class EventsourceClient
         await session.transaction.begin()
 
         await this.redis.ordered.has(phoppKey, id)
-        && await session.ordered.write(phoppKey, id, score)
+        || await session.ordered.write(phoppKey, id, score)
 
         await this.redis.ordered.has(phppKey, id)
-        && await session.ordered.write(phppKey, id, score)
+        || await session.ordered.write(phppKey, id, score)
 
         await session.transaction.commit()
 
@@ -1000,7 +1000,8 @@ class EventsourceClient
         await session.auth()
         await session.transaction.begin()
 
-        await session.hash.write(pdKey, id, process)
+        await this.redis.hash.has(pdKey, id)
+        || await session.hash.write(pdKey, id, process)
 
         await session.transaction.commit()
 
