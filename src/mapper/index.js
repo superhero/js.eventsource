@@ -93,6 +93,15 @@ class EventsourceMapper
     return 'process-error-scheduled'
   }
 
+  /**
+   * @deprecated
+   * @returns {string}
+   */
+  toProcessPersistedChannelLegacy()
+  {
+    return 'process-event-queued'
+  }
+
   toProcessPersistedChannel(domain, name)
   {
     domain = this.toSeperatedLowerCase(domain)
