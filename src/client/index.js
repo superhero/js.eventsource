@@ -839,7 +839,7 @@ class EventsourceClient
         return
       }
 
-      const event = dto?.pid || await this.readEventById(id)
+      const event = dto?.pid ? dto : await this.readEventById(id)
       this.console.color('blue').log(`- ${event.pid}`)
       const session = this.redis.createSession()
 
@@ -914,7 +914,7 @@ class EventsourceClient
         return
       }
 
-      const event = dto?.pid || await this.readEventById(id)
+      const event = dto?.pid ? dto : await this.readEventById(id)
       this.console.color('blue').log(`- ${event.pid}`)
       const session = this.redis.createSession()
 
@@ -985,7 +985,7 @@ class EventsourceClient
         return
       }
 
-      const event = dto?.pid || await this.readEventById(id)
+      const event = dto?.pid ? dto : await this.readEventById(id)
       this.console.color('blue').log(`- ${event.pid}`)
       const session = this.redis.createSession()
 
@@ -1051,7 +1051,7 @@ class EventsourceClient
         return
       }
 
-      const event = dto?.pid || await this.readEventById(id)
+      const event = dto?.pid ? dto : await this.readEventById(id)
       this.console.color('blue').log(`- ${event.pid}`)
       const session = this.redis.createSession()
 
