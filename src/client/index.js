@@ -1000,8 +1000,7 @@ class EventsourceClient
         await session.auth()
         await session.transaction.begin()
 
-        await this.redis.hash.has(pdKey, id)
-        && await session.hash.write(pdKey, id, process)
+        await session.hash.write(pdKey, id, process)
 
         await session.transaction.commit()
 
