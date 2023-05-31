@@ -15,6 +15,8 @@ class EventsourceClientConsumer
   
   async bootstrap()
   {
+    this.console.color('blue').log('✔ eventsource consume › ' + this.config.domain + ' › ' + this.config.name)
+
     await this.client.consume(this.config.domain, this.config.name, async (event, ...args) =>
     {
       this.console.color('blue').log('⁉ ' + event.pid + ' › ' + event.domain + ' › ' + event.name)
