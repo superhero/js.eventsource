@@ -603,22 +603,15 @@ class EventsourceClient
   {
     try
     {
-      await this.readEvent(domain, pid, name)
-      return true
+      const eventlog = await this.readEventlogByEventName(domain, pid, name)
+      return eventlog.length > 0
     }
     catch(previousError)
     {
-      if(previousError.code === 'E_EVENTSOURCE_CLIENT_READ_EVENT_NOT_FOUND')
-      {
-        return false
-      }
-      else
-      {
-        const error = new Error('problem when reading if the event exists in the eventsource')
-        error.code  = 'E_EVENTSOURCE_CLIENT_HAS_EVENT'
-        error.chain = { previousError, domain, pid, name }
-        throw error
-      }
+      const error = new Error('problem when reading if the event exists in the eventsource')
+      error.code  = 'E_EVENTSOURCE_CLIENT_HAS_EVENT'
+      error.chain = { previousError, domain, pid, name }
+      throw error
     }
   }
 
