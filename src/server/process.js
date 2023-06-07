@@ -46,7 +46,28 @@ class Process
       await this.redisSubscriber.pubsub.subscribe(channel, (dto) => this.eventbus.emit(channel, dto))
     }
 
+    await this.setClusterKeySlots()
+
     await this.bootstrapProcessSchedule()
+  }
+
+  async setClusterKeySlots()
+  {
+    const
+      scheduledKey  = this.mapper.toProcessEventScheduledKey(),
+      queueChannel  = this.mapper.toProcessEventQueuedChannel(),
+      slot          = 'sameslot'
+
+    try
+    {
+      await this.redis.cluster.keySlot(scheduledKey, slot)
+      await this.redis.cluster.keySlot(queueChannel, slot)
+    }
+    catch(error)
+    {
+      this.console.color('red').log(error)
+      this.console.color('yellow').log('key slot could not be set for cluster:', error.message)
+    }
   }
 
   /**
@@ -107,39 +128,61 @@ class Process
 
   async persistTimedoutScheduledProcesses()
   {
+    const
+      scheduledKey  = this.mapper.toProcessEventScheduledKey(),
+      queueChannel  = this.mapper.toProcessEventQueuedChannel(),
+      session       = this.redis.createSession()
+
     try
     {
-      const
-        scheduledKey  = this.mapper.toProcessEventScheduledKey(),
-        queueChannel  = this.mapper.toProcessEventQueuedChannel(),
-        now           = Date.now(),
-        list          = await this.redis.ordered.read(scheduledKey, 0, now)
+      await session.connection.connect()
+      await session.auth()
 
-      await this.redis.ordered.delete(scheduledKey, 0, now)
-
-      for(const input of list)
+      try
       {
-        try
+        await session.transaction.watch(scheduledKey)
+        await session.transaction.begin()
+    
+        const
+          now   = Date.now(),
+          list  = await this.redis.ordered.read(scheduledKey, 0, now)
+    
+        for(const input of list)
         {
-          const 
-            process   = this.mapper.toQueryProcess(input),
-            timestamp = new Date(process.timestamp).toJSON()
+          try
+          {
+            const 
+              process   = this.mapper.toQueryProcess(input),
+              timestamp = new Date(process.timestamp).toJSON()
 
-          await this.redis.stream.lazyloadConsumerGroup(queueChannel, queueChannel)
-          await this.redis.stream.write(queueChannel, process)
-          this.console.color('cyan').log(`✔ ${process.pid} → ${process.domain}/${process.name} → scheduled event queued ${timestamp}`)
+            await this.redis.stream.lazyloadConsumerGroup(queueChannel, queueChannel)
+            await session.stream.write(queueChannel, process)
+            this.console.color('cyan').log(`✔ ${process.pid} → ${process.domain}/${process.name} → scheduled event queued ${timestamp}`)
+          }
+          catch(error)
+          {
+            this.eventbus.emit('schedule-error', error)
+          }
         }
-        catch(error)
-        {
-          this.eventbus.emit('schedule-error', error)
-        }
+
+        await session.ordered.delete(scheduledKey, 0, now)
+        await session.transaction.commit()
+        await this.redisPublisher.pubsub.publish(queueChannel)
       }
-
-      await this.redisPublisher.pubsub.publish(queueChannel)
+      catch(error)
+      {
+        this.console.color('red').log(`✗ error → "scheduled event queued" failed when attempting to commit`)
+        await session.transaction.roleback()
+        this.eventbus.emit('schedule-error', error)
+      }
     }
     catch(error)
     {
       this.eventbus.emit('schedule-error', error)
+    }
+    finally
+    {
+      await session.connection.quit()
     }
   }
 
