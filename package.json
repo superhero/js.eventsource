@@ -12,7 +12,7 @@
     "start": "node ./src/server/index.js"
   },
   "dependencies": {
-    "@superhero/core.redis": "2.5.0",
+    "@superhero/core.redis": "2.5.1",
     "superhero": "2.12.3"
   },
   "devDependencies": {
