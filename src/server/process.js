@@ -56,7 +56,7 @@ class Process
     const
       scheduledKey  = this.mapper.toProcessEventScheduledKey(),
       queueChannel  = this.mapper.toProcessEventQueuedChannel(),
-      slot          = 'sameslot'
+      slot          = 'super'
 
     try
     {
@@ -65,8 +65,9 @@ class Process
     }
     catch(error)
     {
-      this.console.color('red').log(error)
       this.console.color('yellow').log('key slot could not be set for cluster:', error.message)
+      this.console.color('yellow').log(`key slot could not be set, you are recomended to set them manually if you are in a clustered envirment: ${scheduledKey}, ${queueChannel}`)
+      this.console.color('yellow').log('...it is only needed to set the key slot for the cluster once initally, but it is safe to set multiple times')
     }
   }
 

@@ -1,3 +1,6 @@
+3.8.0
+- Added the transaction when doing scheduled activity again, rely on keyslots when working in a cluster...
+
 3.7.0
 - Removed the transaction when doing scheduled activity, to ease the use of the service in a clustered envirement.
 
