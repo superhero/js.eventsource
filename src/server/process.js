@@ -46,29 +46,7 @@ class Process
       await this.redisSubscriber.pubsub.subscribe(channel, (dto) => this.eventbus.emit(channel, dto))
     }
 
-    await this.setClusterKeySlots()
-
     await this.bootstrapProcessSchedule()
-  }
-
-  async setClusterKeySlots()
-  {
-    const
-      scheduledKey  = this.mapper.toProcessEventScheduledKey(),
-      queueChannel  = this.mapper.toProcessEventQueuedChannel(),
-      slot          = 'super'
-
-    try
-    {
-      await this.redis.cluster.keySlot(scheduledKey, slot)
-      await this.redis.cluster.keySlot(queueChannel, slot)
-    }
-    catch(error)
-    {
-      this.console.color('yellow').log('key slot could not be set for cluster:', error.message)
-      this.console.color('yellow').log(`key slot could not be set, you are recomended to set them manually if you are in a clustered envirment: ${scheduledKey}, ${queueChannel}`)
-      this.console.color('yellow').log('...it is only needed to set the key slot for the cluster once initally, but it is safe to set multiple times')
-    }
   }
 
   /**
@@ -166,7 +144,7 @@ class Process
           }
         }
 
-        await session.ordered.delete(scheduledKey, 0, now)
+        await session.ordered.delete(`{${queueChannel}}` + scheduledKey, 0, now)
         await session.transaction.commit()
         await this.redisPublisher.pubsub.publish(queueChannel)
       }
