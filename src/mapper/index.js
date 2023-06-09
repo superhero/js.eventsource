@@ -47,7 +47,7 @@ class EventsourceMapper
     return `ph:${domain}:${pid}`
   }
 
-  scheduled(domain, pid, name)
+  toProcessHistoryKeyIndexedByName(domain, pid, name)
   {
     domain = this.toSeperatedLowerCase(domain)
     return `phn:${domain}:${pid}:${name}`
