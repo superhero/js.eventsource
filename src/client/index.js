@@ -257,12 +257,13 @@ class EventsourceClient
       }
 
       const 
-        scheduledKey    = this.mapper.toProcessEventScheduledKey(),
-        scheduledScore  = new Date(timestamp).getTime(),
-        process         = this.mapper.toQueryProcess(input)
+        scheduledKey        = this.mapper.toProcessEventScheduledKey(),
+        scheduledKeyChannel = this.mapper.toProcessEventScheduledKeyChannel(),
+        scheduledScore      = new Date(timestamp).getTime(),
+        process             = this.mapper.toQueryProcess(input)
 
       await this.redis.ordered.write(scheduledKey, process, scheduledScore)
-      this.redisPublisher.pubsub.publish(scheduledKey, scheduledScore)
+      this.redisPublisher.pubsub.publish(scheduledKeyChannel, scheduledScore)
     }
     catch(previousError)
     {

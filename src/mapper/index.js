@@ -47,7 +47,7 @@ class EventsourceMapper
     return `ph:${domain}:${pid}`
   }
 
-  toProcessHistoryKeyIndexedByName(domain, pid, name)
+  scheduled(domain, pid, name)
   {
     domain = this.toSeperatedLowerCase(domain)
     return `phn:${domain}:${pid}:${name}`
@@ -87,6 +87,11 @@ class EventsourceMapper
   {
     const hash_slot = this.toProcessEventQueuedChannel()
     return '{' + hash_slot + '}process-event-scheduled'
+  }
+
+  toProcessEventScheduledKeyChannel()
+  {
+    return 'process-event-scheduled'
   }
 
   toProcessErrorScheduledChannel()
