@@ -54,7 +54,7 @@ class EventsourceClient
       const
         channel = this.mapper.toProcessEventQueuedChannel(),
         pdKey   = this.mapper.toProcessDataKey(),
-        process = await this.redis.hash.read(pdKey, id),
+        process = await this.readEventById(id),
         { domain, pid, name } = process,
         phKey   = this.mapper.toProcessHistoryKey(domain, pid),
         phnKey  = this.mapper.toProcessHistoryKeyIndexedByName(domain, pid, name)
@@ -337,8 +337,7 @@ class EventsourceClient
         scoreFrom = from  && this.mapper.toScore(from),
         scoreTo   = to    && this.mapper.toScore(to),
         history   = await this.redis.ordered.read(phpKey, scoreFrom, scoreTo),
-        pdKey     = this.mapper.toProcessDataKey(),
-        eventlog  = await Promise.all(history.map((id) => this.redis.hash.read(pdKey, id).then((event) => ({ ...event, id })))),
+        eventlog  = await Promise.all(history.map((id) => this.readEventById(id))),
         filtered  = eventlog.map((event) => this.mapper.toEventProcess(event, immutable))
   
       return filtered
@@ -369,8 +368,7 @@ class EventsourceClient
         scoreFrom = from  && this.mapper.toScore(from),
         scoreTo   = to    && this.mapper.toScore(to),
         history   = await this.redis.ordered.read(phoppKey, scoreFrom, scoreTo),
-        pdKey     = this.mapper.toProcessDataKey(),
-        eventlog  = await Promise.all(history.map((id) => this.redis.hash.read(pdKey, id).then((event) => ({ ...event, id })))),
+        eventlog  = await Promise.all(history.map((id) => this.readEventById(id))),
         filtered  = eventlog.map((event) => this.mapper.toEventProcess(event, immutable))
   
       return filtered
@@ -402,8 +400,7 @@ class EventsourceClient
         scoreFrom = from  && this.mapper.toScore(from),
         scoreTo   = to    && this.mapper.toScore(to),
         history   = await this.redis.ordered.read(phppKey, scoreFrom, scoreTo),
-        pdKey     = this.mapper.toProcessDataKey(),
-        eventlog  = await Promise.all(history.map((id) => this.redis.hash.read(pdKey, id).then((event) => ({ ...event, id })))),
+        eventlog  = await Promise.all(history.map((id) => this.readEventById(id))),
         filtered  = eventlog.map((event) => this.mapper.toEventProcess(event, immutable))
   
       return filtered
@@ -435,8 +432,7 @@ class EventsourceClient
         scoreFrom = from  && this.mapper.toScore(from),
         scoreTo   = to    && this.mapper.toScore(to),
         history   = await this.redis.ordered.read(phonKey, scoreFrom, scoreTo),
-        pdKey     = this.mapper.toProcessDataKey(),
-        eventlog  = await Promise.all(history.map((id) => this.redis.hash.read(pdKey, id).then((event) => ({ ...event, id })))),
+        eventlog  = await Promise.all(history.map((id) => this.readEventById(id))),
         filtered  = eventlog.map((event) => this.mapper.toEventProcess(event, immutable))
   
       return filtered
@@ -467,8 +463,7 @@ class EventsourceClient
         scoreFrom = from  && this.mapper.toScore(from),
         scoreTo   = to    && this.mapper.toScore(to),
         history   = await this.redis.ordered.read(phnKey, scoreFrom, scoreTo),
-        pdKey     = this.mapper.toProcessDataKey(),
-        eventlog  = await Promise.all(history.map((id) => this.redis.hash.read(pdKey, id).then((event) => ({ ...event, id })))),
+        eventlog  = await Promise.all(history.map((id) => this.readEventById(id))),
         filtered  = eventlog.map((event) => this.mapper.toEventProcess(event, immutable))
   
       return filtered
@@ -580,10 +575,22 @@ class EventsourceClient
     try
     {
       const 
-        pdKey     = this.mapper.toProcessDataKey(),
-        response  = await this.redis.hash.read(pdKey, id)
+        pdKey = this.mapper.toProcessDataKey(),
+        event = await this.redis.hash.read(pdKey, id)
 
-      return { ...response, id }
+      if(event)
+      {
+        return { ...event, id }
+      }
+      // backwards compatibility...
+      else
+      {
+        const 
+          channel     = this.mapper.toProcessEventQueuedChannel(),
+          streamEvent = await this.redis.stream.read(channel, id)
+
+        return { ...streamEvent, id }
+      }
     }
     catch(previousError)
     {
