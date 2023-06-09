@@ -88,10 +88,12 @@ class Process
     this.console.color('green').log(`✔ updating schedule queue to ${newTimestamp} from ${oldTimestamp}`)
 
     this.timestamp = timestamp
+
     const timeout = Math.max(0, this.timestamp - Date.now())
     clearTimeout(this.timeoutId)
     this.timeoutId = setTimeout(async () =>
     {
+      this.console.color('green').log(`✔ scheduled task triggered: ${this.timestamp}`)
       delete this.timestamp
       await this.persistTimedoutScheduledProcesses()
       await this.bootstrapProcessSchedule()
@@ -144,7 +146,7 @@ class Process
           }
         }
 
-        await session.ordered.delete(`{${queueChannel}}` + scheduledKey, 0, now)
+        await session.ordered.delete(scheduledKey, 0, now)
         await session.transaction.commit()
         await this.redisPublisher.pubsub.publish(queueChannel)
       }

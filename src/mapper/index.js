@@ -85,7 +85,8 @@ class EventsourceMapper
   
   toProcessEventScheduledKey()
   {
-    return 'process-event-scheduled'
+    const hash_slot = this.toProcessEventQueuedChannel()
+    return '{' + hash_slot + '}process-event-scheduled'
   }
 
   toProcessErrorScheduledChannel()

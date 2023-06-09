@@ -1,3 +1,6 @@
+3.9.0
+- Introduced a change to the key: "process-event-scheduled"; it's now labeled with a hash-tag to match the same slot as the "process-event-queued" key, allowing transactions of the two keys in the same cluster.
+
 3.8.0
 - Added the transaction when doing scheduled activity again, rely on keyslots when working in a cluster...
 
