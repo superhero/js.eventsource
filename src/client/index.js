@@ -513,27 +513,6 @@ class EventsourceClient
   }
 
   /**
-   * @param {string} group
-   * @param {string} channel name of the channel, see the mapper for channel names
-   * @param {string} [id='0'] "0" to read from the beginning
-   */
-  async readStreamByChannel(group, channel, id='0')
-  {
-    try
-    {
-      await this.redis.stream.lazyloadConsumerGroup(channel, group, id)
-      return await this.redis.stream.readGroup(channel, group)
-    }
-    catch(previousError)
-    {
-      const error = new Error('eventsource read stream failed')
-      error.code  = 'E_EVENTSOURCE_READ_STREAM'
-      error.chain = { previousError, group }
-      throw error
-    }
-  }
-
-  /**
    * @param {string} domain
    * @param {string} pid
    * @param {string} name
