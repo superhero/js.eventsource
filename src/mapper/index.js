@@ -73,6 +73,11 @@ class EventsourceMapper
     return `phpp:${domain}:${ppid}`
   }
 
+  toProcessEventIndexedChannel()
+  {
+    return 'process-event-indexed'
+  }
+
   toProcessEventQueuedChannel()
   {
     return 'process-event-queued'

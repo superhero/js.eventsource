@@ -1,13 +1,16 @@
-3.9.0
+3.10.0
+- Broken backwards compatability, necessery bugfix implemented to not remove the queue, but to only remove it's data after it has been indexed.
+
+3.9.0 - Depricated
 - Introduced a change to the key: "process-event-scheduled"; it's now labeled with a hash-tag to match the same slot as the "process-event-queued" key, allowing transactions of the two keys in the same cluster.
 
-3.8.0
+3.8.0 - Depricated
 - Added the transaction when doing scheduled activity again, rely on keyslots when working in a cluster...
 
-3.7.0
+3.7.0 - Depricated
 - Removed the transaction when doing scheduled activity, to ease the use of the service in a clustered envirement.
 
-3.6.5
+3.6.5 - Depricated
 - Removed the transaction at the process core that was used to index the refferences used when reading from the solution. This will make it easier to work with the solution in a clustered environment.
 
 3.4.0

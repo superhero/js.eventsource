@@ -1038,9 +1038,10 @@ class EventsourceClient
       try
       {
         const
-          process       = this.mapper.toQueryProcess(event),
-          pdKey         = this.mapper.toProcessDataKey(),
-          queuedChannel = this.mapper.toProcessEventQueuedChannel(),
+          process         = this.mapper.toQueryProcess(event),
+          pdKey           = this.mapper.toProcessDataKey(),
+          queuedChannel   = this.mapper.toProcessEventQueuedChannel(),
+          indexedChannel  = this.mapper.toProcessEventIndexedChannel(),
           { timestamp, pid, domain, name } = process
 
         await session.connection.connect()
@@ -1057,6 +1058,7 @@ class EventsourceClient
         }
 
         await session.stream.delete(queuedChannel, id)
+        await session.stream.write(indexedChannel, id)
 
         await session.transaction.commit()
 
