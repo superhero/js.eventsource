@@ -1058,7 +1058,7 @@ class EventsourceClient
         }
 
         await session.stream.delete(queuedChannel, id)
-        await session.stream.write(indexedChannel, id)
+        await session.stream.write(indexedChannel, { id })
 
         await session.transaction.commit()
 

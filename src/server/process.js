@@ -224,7 +224,7 @@ class Process
       }
 
       await this.redis.stream.delete(queuedChannel, id)
-      await this.redis.stream.write(indexedChannel, id)
+      await this.redis.stream.write(indexedChannel, { id })
     }
     catch(previousError)
     {
