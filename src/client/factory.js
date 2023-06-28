@@ -7,12 +7,13 @@ const
  */
 class EventsourceClientFactory
 {
-  constructor(console, mapper, eventbus, deepmerge)
+  constructor(console, mapper, eventbus, reader, writer)
   {
     this.console    = console
     this.mapper     = mapper
     this.eventbus   = eventbus
-    this.deepmerge  = deepmerge
+    this.reader     = reader
+    this.writer     = writer
   }
 
   /**
@@ -26,7 +27,7 @@ class EventsourceClientFactory
       publisher     = redis.createSession(),
       subscriber    = redis.createSession()
 
-    return new EventsourceClient(this.mapper, redis, publisher, subscriber, this.deepmerge, this.eventbus, this.console)
+    return new EventsourceClient(this.mapper, redis, publisher, subscriber, this.reader, this.writer, this.eventbus, this.console)
   }
 }
 

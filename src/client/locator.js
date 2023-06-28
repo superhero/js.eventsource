@@ -17,10 +17,11 @@ class EventsourceClientLocator extends LocatorConstituent
     const
       mapper        = this.locator.locate('eventsource/mapper'),
       eventbus      = this.locator.locate('core/eventbus'),
-      deepmerge     = this.locator.locate('core/deepmerge'),
       console       = this.locator.locate('core/console'),
+      reader        = this.locator.locate('eventsource/reader'),
+      writer        = this.locator.locate('eventsource/writer'),
       configuration = this.locator.locate('core/configuration'),
-      factory       = new EventsourceClientFactory(console, mapper, eventbus, deepmerge),
+      factory       = new EventsourceClientFactory(console, mapper, eventbus, reader, writer),
       optionsEs     = configuration.find('client/eventsource'),
       client        = factory.create(optionsEs)
 

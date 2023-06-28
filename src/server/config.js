@@ -7,23 +7,25 @@ module.exports =
   {
     bootstrap:
     {
-      'set up subscribers' : 'process'
+      'set up subscribers' : 'eventsource/process'
     },
     locator:
     {
-      'process' : __dirname
+      'eventsource/process' : __dirname,
+      'eventsource/reader'  : __dirname + '/reader',
+      'eventsource/writer'  : __dirname + '/writer'
     },
     eventbus:
     {
       'observers' : 
       {
-        'process-event-scheduled-cleared' : { 'process':true },
-        'process-event-scheduled'         : { 'process':true },
-        'process-error-scheduled'         : { 'process':true },
-        'schedule-error'                  : { 'process':true },
-        'process-event-queued'            : { 'process':true },
-        'process-error-queued'            : { 'process':true },
-        'process-error'                   : { 'process':true }
+        'process-event-scheduled-cleared' : { 'eventsource/process':true },
+        'process-event-scheduled'         : { 'eventsource/process':true },
+        'process-error-scheduled'         : { 'eventsource/process':true },
+        'schedule-error'                  : { 'eventsource/process':true },
+        'process-event-queued'            : { 'eventsource/process':true },
+        'process-error-queued'            : { 'eventsource/process':true },
+        'process-error'                   : { 'eventsource/process':true }
       }
     }
   },

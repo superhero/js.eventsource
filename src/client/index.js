@@ -3,13 +3,14 @@
  */
 class EventsourceClient
 {
-  constructor(mapper, redis, publisher, subscriber, deepmerge, eventbus, console)
+  constructor(mapper, redis, publisher, subscriber, reader, writer, eventbus, console)
   {
     this.mapper           = mapper
     this.redis            = redis
     this.redisPublisher   = publisher
     this.redisSubscriber  = subscriber
-    this.deepmerge        = deepmerge
+    this.reader           = reader
+    this.writer           = writer
     this.eventbus         = eventbus
     this.console          = console
   }
@@ -51,24 +52,11 @@ class EventsourceClient
   {
     try
     {
-      const
-        channel = this.mapper.toProcessEventQueuedChannel(),
-        pdKey   = this.mapper.toProcessDataKey(),
-        process = await this.readEventById(id),
-        { domain, pid, name } = process,
-        phKey   = this.mapper.toProcessHistoryKey(domain, pid),
-        phnKey  = this.mapper.toProcessHistoryKeyIndexedByName(domain, pid, name)
-
-      await this.redis.ordered.deleteValue(phKey,  id)
-      await this.redis.ordered.deleteValue(phnKey, id)
-      await this.redis.stream.delete(channel, id)
-      await this.redis.hash.delete(pdKey, id)
-
-      return response
+      return await this.writer.deleteIndexedProcess(id)
     }
     catch(previousError)
     {
-      const error = new Error('problem when deleting the process event from the eventsource')
+      const error = new Error('could not read the event by id from redis')
       error.code  = 'E_EVENTSOURCE_CLIENT_DELETE'
       error.chain = { previousError, id }
       throw error
@@ -82,82 +70,90 @@ class EventsourceClient
    * @param {string} [exceptions] string or array of event names that shoudl be rejected as an exception/error
    * @param {number} [timeout=6e4] 
    * @throws E_EVENTSOURCE_CLIENT_WAIT
-   * @throws E_EVENTSOURCE_CLIENT_WAIT_EXCEPTION
-   * @throws E_EVENTSOURCE_CLIENT_WAIT_TIMEOUT
    */
-  wait(domain, pid, happyPaths, exceptions=[], timeout=6e4)
+  async wait(domain, pid, happyPaths, exceptions, timeout)
   {
-    if(false === Array.isArray(happyPaths))
+    try
     {
-      happyPaths = [happyPaths]
-    }
-    if(false === Array.isArray(exceptions))
-    {
-      exceptions = [exceptions]
-    }
-
-    return new Promise((accept, reject) =>
-    {
-      const 
-        eventNames = [ ...happyPaths, ...exceptions ],
-        timeout_id = setTimeout(() => 
-        {
-          const error = new Error('exceptional event triggered')
-          error.code  = 'E_EVENTSOURCE_CLIENT_WAIT_TIMEOUT'
-          error.chain = { domain, pid, happyPaths, exceptions, timeout }
-          reject(error)
-        }, timeout)
-
-      for(const name of eventNames)
+      if(false === Array.isArray(happyPaths))
       {
-        const channel = this.mapper.toProcessPersistedPidNameChannel(domain, pid, name)
-        this.redisSubscriber.pubsub.subscribe(channel, async (dto) =>
-        {
-          for(const name of eventNames)
+        happyPaths = [happyPaths]
+      }
+      if(false === Array.isArray(exceptions))
+      {
+        exceptions = [exceptions]
+      }
+  
+      return new Promise((accept, reject) =>
+      {
+        const 
+          eventNames = [ ...happyPaths, ...exceptions ],
+          timeout_id = setTimeout(() => 
           {
+            const error = new Error('exceptional event triggered')
+            error.code  = 'E_EVENTSOURCE_READER_WAIT_TIMEOUT'
+            error.chain = { domain, pid, happyPaths, exceptions, timeout }
+            reject(error)
+          }, timeout)
+  
+        for(const name of eventNames)
+        {
+          const channel = this.mapper.toProcessPersistedPidNameChannel(domain, pid, name)
+          this.redisSubscriber.pubsub.subscribe(channel, async (dto) =>
+          {
+            for(const name of eventNames)
+            {
+              try
+              {
+                const channel = this.mapper.toProcessPersistedPidNameChannel(domain, pid, name)
+                await this.redisSubscriber.pubsub.unsubscribe(channel)
+              }
+              catch(previousError)
+              {
+                clearTimeout(timeout_id)
+                const error = new Error('could not unsubscribe to event')
+                error.code  = 'E_EVENTSOURCE_READER_WAIT_EXCEPTION'
+                error.chain = { previousError, domain, pid, name, eventNames }
+                reject(error)
+              }
+            }
+  
             try
             {
-              const channel = this.mapper.toProcessPersistedPidNameChannel(domain, pid, name)
-              await this.redisSubscriber.pubsub.unsubscribe(channel)
+              const event = await this.readEventById(dto.id)
+              if(happyPaths.includes(event.name))
+              {
+                clearTimeout(timeout_id)
+                accept(event)
+              }
+              else
+              {
+                clearTimeout(timeout_id)
+                const error = new Error('exceptional event triggered')
+                error.code  = 'E_EVENTSOURCE_READER_WAIT_EXCEPTION'
+                error.chain = { event, dto }
+                reject(error)
+              }
             }
             catch(previousError)
             {
               clearTimeout(timeout_id)
-              const error = new Error('could not unsubscribe to event')
-              error.code  = 'E_EVENTSOURCE_CLIENT_WAIT_EXCEPTION'
-              error.chain = { previousError, domain, pid, name, eventNames }
+              const error = new Error('could not read the event by id from redis')
+              error.code  = 'E_EVENTSOURCE_READER_WAIT'
+              error.chain = { previousError, domain, pid, name, dto }
               reject(error)
             }
-          }
-
-          try
-          {
-            const event = await this.readEventById(dto.id)
-            if(happyPaths.includes(event.name))
-            {
-              clearTimeout(timeout_id)
-              accept(event)
-            }
-            else
-            {
-              clearTimeout(timeout_id)
-              const error = new Error('exceptional event triggered')
-              error.code  = 'E_EVENTSOURCE_CLIENT_WAIT_EXCEPTION'
-              error.chain = { event, dto }
-              reject(error)
-            }
-          }
-          catch(previousError)
-          {
-            clearTimeout(timeout_id)
-            const error = new Error('could not read the event by id from redis')
-            error.code  = 'E_EVENTSOURCE_CLIENT_WAIT'
-            error.chain = { previousError, domain, pid, name, dto }
-            reject(error)
-          }
-        })
-      }
-    })
+          })
+        }
+      })
+    }
+    catch(previousError)
+    {
+      const error = new Error('could not read the event by id from redis')
+      error.code  = 'E_EVENTSOURCE_CLIENT_WAIT'
+      error.chain = { previousError, domain, pid, happyPaths, exceptions, timeout }
+      throw error
+    }
   }
 
   /**
@@ -171,14 +167,7 @@ class EventsourceClient
   {
     try
     {
-      const
-        phnKey      = this.mapper.toProcessHistoryKeyIndexedByName(domain, pid, name),
-        collection  = await this.redis.ordered.read(phnKey)
-
-      for(const id of collection)
-      {
-        await this.delete(id)
-      }
+      await this.writer.deleteIndexedProcessByName(domain, pid, name)
     }
     catch(previousError)
     {
@@ -195,39 +184,19 @@ class EventsourceClient
    * the event now being written, used to be extended by the input entity and set 
    * the referer id called "rid" in the meta value object, extended by the 
    * process entity.
-   * @param {boolean} [broadcast=true] 
+   * @param {boolean} [broadcast=true]
    */
-  async write(input, chain, broadcast=true)
+  async write(input, chain, broadcast)
   {
     try
     {
-      if(chain)
-      {
-        input = this.deepmerge.merge(
-        {
-          rid     : chain.id, 
-          domain  : chain.domain, 
-          pid     : chain.pid, 
-          ppid    : chain.ppid, 
-          name    : chain.name 
-        }, input)
-      }
-
-      const
-        channel = this.mapper.toProcessEventQueuedChannel(),
-        process = this.mapper.toQueryProcess(input)
-
-      await this.redis.stream.lazyloadConsumerGroup(channel, channel)
-      const response = await this.redis.stream.write(channel, { ...process, broadcast })
-      this.redisPublisher.pubsub.publish(channel)
-
-      return response
+      return await this.writer.writeEvent(this.redisPublisher, input, chain, broadcast)
     }
     catch(previousError)
     {
       const error = new Error('problem when writing the process event to the eventsource')
       error.code  = 'E_EVENTSOURCE_CLIENT_WRITE'
-      error.chain = { previousError, input }
+      error.chain = { previousError, input, chain, broadcast }
       throw error
     }
   }
@@ -244,26 +213,7 @@ class EventsourceClient
   {
     try
     {
-      if(chain)
-      {
-        input = this.deepmerge.merge(
-        {
-          rid     : chain.id,
-          domain  : chain.domain,
-          pid     : chain.pid,
-          ppid    : chain.ppid,
-          name    : chain.name
-        }, input)
-      }
-
-      const 
-        scheduledKey        = this.mapper.toProcessEventScheduledKey(),
-        scheduledKeyChannel = this.mapper.toProcessEventScheduledKeyChannel(),
-        scheduledScore      = new Date(timestamp).getTime(),
-        process             = this.mapper.toQueryProcess(input)
-
-      await this.redis.ordered.write(scheduledKey, process, scheduledScore)
-      this.redisPublisher.pubsub.publish(scheduledKeyChannel, scheduledScore)
+      await this.writer.schedule(this.redisPublisher, timestamp, input, chain)
     }
     catch(previousError)
     {
@@ -274,13 +224,11 @@ class EventsourceClient
     }
   }
 
-  async clearSchedule(min='-inf', max='+inf')
+  async clearSchedule(min, max)
   {
     try
     {
-      const scheduledKey = this.mapper.toProcessEventScheduledKey()
-      await this.redis.ordered.delete(scheduledKey, min, max)
-      this.redisPublisher.pubsub.publish('process-event-scheduled-cleared')
+      await this.writer.clearSchedule(this.redisPublisher, min, max)
     }
     catch(previousError)
     {
@@ -302,15 +250,7 @@ class EventsourceClient
   {
     try
     {
-      const
-        phKey     = this.mapper.toProcessHistoryKey(domain, pid),
-        scoreFrom = from  && this.mapper.toScore(from),
-        scoreTo   = to    && this.mapper.toScore(to),
-        history   = await this.redis.ordered.read(phKey, scoreFrom, scoreTo),
-        eventlog  = await Promise.all(history.map((id) => this.readEventById(id))),
-        filtered  = eventlog.map((event) => this.mapper.toEventProcess(event, immutable))
-
-      return filtered
+      return await this.reader.readEventlog(domain, pid, from, to, immutable)
     }
     catch(previousError)
     {
@@ -333,15 +273,7 @@ class EventsourceClient
   {
     try
     {
-      const
-        phpKey    = this.mapper.toProcessHistoryKeyIndexedOnlyByPid(pid),
-        scoreFrom = from  && this.mapper.toScore(from),
-        scoreTo   = to    && this.mapper.toScore(to),
-        history   = await this.redis.ordered.read(phpKey, scoreFrom, scoreTo),
-        eventlog  = await Promise.all(history.map((id) => this.readEventById(id))),
-        filtered  = eventlog.map((event) => this.mapper.toEventProcess(event, immutable))
-  
-      return filtered
+      return await this.reader.readEventlogByPid(pid, from, to, immutable)
     }
     catch(previousError)
     {
@@ -364,15 +296,7 @@ class EventsourceClient
   {
     try
     {
-      const
-        phoppKey  = this.mapper.toProcessHistoryKeyIndexedOnlyByPpid(ppid),
-        scoreFrom = from  && this.mapper.toScore(from),
-        scoreTo   = to    && this.mapper.toScore(to),
-        history   = await this.redis.ordered.read(phoppKey, scoreFrom, scoreTo),
-        eventlog  = await Promise.all(history.map((id) => this.readEventById(id))),
-        filtered  = eventlog.map((event) => this.mapper.toEventProcess(event, immutable))
-  
-      return filtered
+      return await this.reader.readEventlogByPpid(ppid, from, to, immutable)
     }
     catch(previousError)
     {
@@ -396,15 +320,7 @@ class EventsourceClient
   {
     try
     {
-      const
-        phppKey   = this.mapper.toProcessHistoryKeyIndexedByPpid(domain, ppid),
-        scoreFrom = from  && this.mapper.toScore(from),
-        scoreTo   = to    && this.mapper.toScore(to),
-        history   = await this.redis.ordered.read(phppKey, scoreFrom, scoreTo),
-        eventlog  = await Promise.all(history.map((id) => this.readEventById(id))),
-        filtered  = eventlog.map((event) => this.mapper.toEventProcess(event, immutable))
-  
-      return filtered
+      return await this.reader.readEventlogByDomainAndPpid(domain, ppid, from, to, immutable)
     }
     catch(previousError)
     {
@@ -428,15 +344,7 @@ class EventsourceClient
   {
     try
     {
-      const
-        phonKey   = this.mapper.toProcessHistoryKeyIndexedOnlyByName(name),
-        scoreFrom = from  && this.mapper.toScore(from),
-        scoreTo   = to    && this.mapper.toScore(to),
-        history   = await this.redis.ordered.read(phonKey, scoreFrom, scoreTo),
-        eventlog  = await Promise.all(history.map((id) => this.readEventById(id))),
-        filtered  = eventlog.map((event) => this.mapper.toEventProcess(event, immutable))
-  
-      return filtered
+      return await this.reader.readEventWrittenByAllProcesses(name, from, to, immutable)
     }
     catch(previousError)
     {
@@ -459,15 +367,7 @@ class EventsourceClient
   {
     try
     {
-      const
-        phnKey    = this.mapper.toProcessHistoryKeyIndexedByName(domain, pid, name),
-        scoreFrom = from  && this.mapper.toScore(from),
-        scoreTo   = to    && this.mapper.toScore(to),
-        history   = await this.redis.ordered.read(phnKey, scoreFrom, scoreTo),
-        eventlog  = await Promise.all(history.map((id) => this.readEventById(id))),
-        filtered  = eventlog.map((event) => this.mapper.toEventProcess(event, immutable))
-  
-      return filtered
+      return await this.reader.readEventlogByEventName(domain, pid, name, from, to, immutable)
     }
     catch(previousError)
     {
@@ -478,30 +378,11 @@ class EventsourceClient
     }
   }
 
-  async readState(domain, pid, from=null, to=null, immutable=false)
+  async readState(domain, pid, from, to, immutable)
   {
     try
     {
-      const
-        eventlog  = await this.readEventlog(domain, pid, from, to, immutable),
-        state     = {}
-
-      // divided in segments of 10... to prevent call stack issues with larger eventlogs
-      for(let i = 0; i < eventlog.length; i++)
-      {
-        if(i && i % 10 === 0)
-        {
-          const segment = this.deepmerge.merge(...eventlog.slice(i - 10, i).map((event) => event.data))
-          this.deepmerge.merge(state, segment)
-        }
-        else if(i === eventlog.length - 1)
-        {
-          const segment = this.deepmerge.merge(...eventlog.slice(i - (i % 10), i + 1).map((event) => event.data))
-          this.deepmerge.merge(state, segment)
-        }
-      }
-
-      return state
+      return await this.reader.readState(domain, pid, from, to, immutable)
     }
     catch(previousError)
     {
@@ -522,11 +403,7 @@ class EventsourceClient
   {
     try
     {
-      const
-        eventlog  = await this.readEventlog(domain, pid, timestamp, timestamp),
-        filtered  = eventlog.filter((event) => event.name === name)
-
-      return filtered.pop().data
+      return await this.reader.readEvent(domain, pid, name, timestamp)
     }
     catch(previousError)
     {
@@ -554,23 +431,7 @@ class EventsourceClient
   {
     try
     {
-      const 
-        pdKey = this.mapper.toProcessDataKey(),
-        event = await this.redis.hash.read(pdKey, id)
-
-      if(event)
-      {
-        return { ...event, id }
-      }
-      // backwards compatibility...
-      else
-      {
-        const 
-          channel     = this.mapper.toProcessEventQueuedChannel(),
-          streamEvent = await this.redis.stream.read(channel, id)
-
-        return { ...streamEvent, id }
-      }
+      return await this.reader.readEventById(id)
     }
     catch(previousError)
     {
@@ -590,8 +451,7 @@ class EventsourceClient
   {
     try
     {
-      const eventlog = await this.readEventlogByEventName(domain, pid, name)
-      return eventlog.length > 0
+      return await this.reader.hasEvent(domain, pid, name)
     }
     catch(previousError)
     {
@@ -833,20 +693,20 @@ class EventsourceClient
           phnKey      = this.mapper.toProcessHistoryKeyIndexedByName(domain, pid, name),
           score       = this.mapper.toScore(timestamp)
 
-        await session.connection.connect()
-        await session.auth()
-        await session.transaction.begin()
+        await this.redis.connection.connect()
+        await this.redis.auth()
+        await this.redis.transaction.begin()
 
         await this.redis.ordered.has(phnKey, id)
-        || await session.ordered.write(phnKey, id, score)
+        || await this.redis.ordered.write(phnKey, id, score)
 
         await this.redis.ordered.has(phonKey, id)
-        || await session.ordered.write(phonKey, id, score)
+        || await this.redis.ordered.write(phonKey, id, score)
 
         await this.redis.ordered.has(phopKey, id)
-        || await session.ordered.write(phopKey, id, score)
+        || await this.redis.ordered.write(phopKey, id, score)
 
-        await session.transaction.commit()
+        await this.redis.transaction.commit()
 
         this.console.color('green').log(`✔ ${pid} → ${domain}/${name} → ${id} → ${timestamp}`)
       }
@@ -859,7 +719,7 @@ class EventsourceClient
       }
       finally
       {
-        await session.connection.quit()
+        await this.redis.connection.quit()
       }
     }));
 

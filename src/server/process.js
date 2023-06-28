@@ -4,7 +4,7 @@
  */
 class Process
 {
-  constructor(redis, publisher, subscriber, mapper, eventbus, console, channels, authKey)
+  constructor(redis, publisher, subscriber, mapper, eventbus, console, reader, writer, channels, authKey)
   {
     this.redis            = redis
     this.redisPublisher   = publisher
@@ -12,6 +12,8 @@ class Process
     this.mapper           = mapper
     this.eventbus         = eventbus
     this.console          = console
+    this.reader           = reader
+    this.writer           = writer
     this.channels         = channels
     this.authKey          = authKey
   }
@@ -195,36 +197,13 @@ class Process
   async persistProcess(id, event)
   {
     const 
-      broadcast       = event.broadcast === undefined ? true : !!event.broadcast,
-      process         = this.mapper.toQueryProcess(event),
-      { timestamp, domain, pid, ppid, name } = process,
-      pdKey           = this.mapper.toProcessDataKey(),
-      phKey           = this.mapper.toProcessHistoryKey(domain, pid),
-      phonKey         = this.mapper.toProcessHistoryKeyIndexedOnlyByName(name),
-      phopKey         = this.mapper.toProcessHistoryKeyIndexedOnlyByPid(pid),
-      phoppKey        = this.mapper.toProcessHistoryKeyIndexedOnlyByPpid(ppid),
-      phppKey         = this.mapper.toProcessHistoryKeyIndexedByPpid(domain, ppid),
-      phnKey          = this.mapper.toProcessHistoryKeyIndexedByName(domain, pid, name),
-      queuedChannel   = this.mapper.toProcessEventQueuedChannel(),
-      indexedChannel  = this.mapper.toProcessEventIndexedChannel(),
-      score           = this.mapper.toScore(timestamp)
+      broadcast = event.broadcast === undefined ? true : !!event.broadcast,
+      process   = this.mapper.toQueryProcess(event),
+      { domain, pid, name } = process
 
     try
     {
-      await this.redis.hash.write(pdKey, id, process)
-      await this.redis.ordered.write(phKey,   id, score)
-      await this.redis.ordered.write(phnKey,  id, score)
-      await this.redis.ordered.write(phonKey, id, score)
-      await this.redis.ordered.write(phopKey, id, score)
-
-      if(ppid)
-      {
-        await this.redis.ordered.write(phoppKey, id, score)
-        await this.redis.ordered.write(phppKey,  id, score)
-      }
-
-      await this.redis.stream.delete(queuedChannel, id)
-      await this.redis.stream.write(indexedChannel, { id })
+      await this.writer.indexProcess(id, process, broadcast)
     }
     catch(previousError)
     {
@@ -261,8 +240,9 @@ class Process
 
   async onProcessErrorQueued()
   {
-    const channel = this.mapper.toProcessErrorQueuedChannel()
-    const error = await this.redis.stream.readGroup(channel, channel)
+    const 
+      channel = this.mapper.toProcessErrorQueuedChannel(),
+      error   = await this.redis.stream.readGroup(channel, channel)
 
     error
     ? this.console.error(channel, error)
