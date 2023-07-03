@@ -4,10 +4,12 @@
  */
 class Writer
 {
-  constructor(redis, mapper)
+  constructor(redis, mapper, deepmerge, reader)
   {
-    this.redis  = redis
-    this.mapper = mapper
+    this.redis      = redis
+    this.mapper     = mapper
+    this.deepmerge  = deepmerge
+    this.reader     = reader
   }
 
   /**

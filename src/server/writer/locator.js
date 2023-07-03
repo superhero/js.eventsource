@@ -14,10 +14,12 @@ class WriterLocator extends LocatorConstituent
   locate()
   {
     const
-      redis   = this.locator.locate('redis/client'),
-      mapper  = this.locator.locate('eventsource/mapper')
+      redis     = this.locator.locate('redis/client'),
+      mapper    = this.locator.locate('eventsource/mapper'),
+      deepmerge = this.locator.locate('core/deepmerge'),
+      reader    = this.locator.locate('eventsource/reader')
 
-    return new Writer(redis, mapper)
+    return new Writer(redis, mapper, deepmerge, reader)
   }
 }
 
