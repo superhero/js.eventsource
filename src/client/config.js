@@ -18,7 +18,9 @@ module.exports =
     locator:
     {
       'eventsource/client'          : __dirname,
-      'eventsource/client/consumer' : __dirname + '/consumer'
+      'eventsource/client/consumer' : __dirname + '/consumer',
+      'eventsource/reader'          : __dirname + '/../server/reader',
+      'eventsource/writer'          : __dirname + '/../server/writer'
     },
     eventbus:
     {
