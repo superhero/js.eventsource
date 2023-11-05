@@ -90,6 +90,7 @@ class Writer
    */
   async deleteIndexedProcessByName(domain, pid, name)
   {
+    // TODO - read with help of read model
     const
       phnKey      = this.mapper.toProcessHistoryKeyIndexedByName(domain, pid, name),
       collection  = await this.redis.ordered.read(phnKey)
