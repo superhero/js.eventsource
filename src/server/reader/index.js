@@ -112,9 +112,10 @@ class Reader
       scoreTo   = to    && this.mapper.toScore(to),
       history   = await this.redis.ordered.read(phonKey, scoreFrom, scoreTo),
       eventlog  = await Promise.all(history.map((id) => this.readEventById(id))),
-      filtered  = eventlog.map((event) => this.mapper.toEventProcess(event, immutable))
+      filtered  = eventlog.filter((event) => { try{ this.mapper.toEventProcess(event, immutable) } catch(e) { return false } return true }),
+      mapped    = filtered.map((event) => this.mapper.toEventProcess(event, immutable))
 
-    return filtered
+    return mapped
   }
 
   /**
