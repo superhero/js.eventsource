@@ -63,9 +63,19 @@ class EventsourceMapper
     return `phop:${pid}`
   }
 
+  toProcessHistoryKeyIndexedOnlyByEid(eid)
+  {
+    return `phoe:${eid}`
+  }
+
   toProcessHistoryKeyIndexedOnlyByPpid(ppid)
   {
     return `phopp:${ppid}`
+  }
+
+  toProcessHistoryKeyIndexedOnlyByCpid(cpid)
+  {
+    return `phocp:${cpid}`
   }
 
   toProcessHistoryKeyIndexedByPpid(domain, ppid)

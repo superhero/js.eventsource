@@ -28,7 +28,21 @@ const schema =
     'type'      : 'string',
     'not-empty' : true
   },
+  'eid':
+  {
+    'type'      : 'string',
+    'not-empty' : true,
+    'nullable'  : true,
+    'default'   : null
+  },
   'ppid':
+  {
+    'type'      : 'string',
+    'not-empty' : true,
+    'nullable'  : true,
+    'default'   : null
+  },
+  'cpid':
   {
     'type'      : 'string',
     'not-empty' : true,

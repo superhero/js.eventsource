@@ -1,3 +1,6 @@
+3.12.0
+- Added child process id (cpid) and entity id (eid) to the event/process entity.
+
 3.10.0
 - Broken backwards compatability, necessery bugfix implemented to not remove the queue, but to only remove it's data after it has been indexed.
 
