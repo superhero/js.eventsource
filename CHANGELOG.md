@@ -1,4 +1,4 @@
-3.12.1
+3.12.2
 - Altered the index of child process id (cpid) and entity id (eid) to be a seperate index from the event.
 
 3.12.1
