@@ -436,7 +436,43 @@ class EventsourceClient
     catch(previousError)
     {
       const error = new Error('problem when reading an event by queue id from the eventsource')
-      error.code  = 'E_EVENTSOURCE_CLIENT_READ_STATE_BY_ID'
+      error.code  = 'E_EVENTSOURCE_CLIENT_READ_EVENT_BY_ID'
+      error.chain = { previousError, id }
+      throw error
+    }
+  }
+
+  /**
+   * @param {number} id
+   */
+  async readEidById(id)
+  {
+    try
+    {
+      return await this.reader.readEid(id)
+    }
+    catch(previousError)
+    {
+      const error = new Error('problem when reading the eid collection by queue id from the eventsource')
+      error.code  = 'E_EVENTSOURCE_CLIENT_READ_EID_BY_ID'
+      error.chain = { previousError, id }
+      throw error
+    }
+  }
+
+  /**
+   * @param {number} id
+   */
+  async readCpidById(id)
+  {
+    try
+    {
+      return await this.reader.readCpid(id)
+    }
+    catch(previousError)
+    {
+      const error = new Error('problem when reading the cpid collection by queue id from the eventsource')
+      error.code  = 'E_EVENTSOURCE_CLIENT_READ_CPID_BY_ID'
       error.chain = { previousError, id }
       throw error
     }

@@ -30,6 +30,9 @@ class Writer
       indexedChannel  = this.mapper.toProcessEventIndexedChannel(),
       score           = this.mapper.toScore(timestamp)
 
+    delete process.eid
+    delete process.cpid
+
     await this.redis.hash.write(pdKey, id, process)
     await this.redis.ordered.write(phKey,   id, score)
     await this.redis.ordered.write(phnKey,  id, score)
@@ -38,8 +41,12 @@ class Writer
 
     if(eid)
     {
-      const phoeKey = this.mapper.toProcessHistoryKeyIndexedOnlyByEid(eid)
-      await this.redis.ordered.write(phoeKey,  id, score)
+      await this.linkEid(id, eid)
+    }
+
+    if(cpid)
+    {
+      await this.linkCpid(id, cpid)
     }
 
     if(ppid)
@@ -52,14 +59,56 @@ class Writer
       await this.redis.ordered.write(phppKey,  id, score)
     }
 
-    if(cpid)
-    {
-      const phocpKey = this.mapper.toProcessHistoryKeyIndexedOnlyByCpid(cpid)
-      await this.redis.ordered.write(phocpKey, id, score)
-    }
-
     await this.redis.stream.delete(queuedChannel, id)
     await this.redis.stream.write(indexedChannel, { id })
+  }
+
+  async linkEid(id, eid)
+  {
+    eid = Array.isArray(eid) ? eid : [eid]
+
+    const phoeKey = this.mapper.toProcessHistoryKeyIndexedOnlyByEid(id)
+
+    for(const item of eid)
+    {
+      await this.redis.unordered.write(phoeKey, item)
+    }
+  }
+
+  async linkCpid(id, cpid)
+  {
+    cpid = Array.isArray(cpid) ? cpid : [cpid]
+
+    const phocpKey = this.mapper.toProcessHistoryKeyIndexedOnlyByCpid(id)
+
+    for(const item of cpid)
+    {
+      await this.redis.unordered.write(phocpKey, item)
+    }
+  }
+
+  async unlinkEid(id, eid)
+  {
+    eid = Array.isArray(eid) ? eid : [eid]
+
+    const phoeKey = this.mapper.toProcessHistoryKeyIndexedOnlyByEid(id)
+
+    for(const item of cpid)
+    {
+      await this.redis.unordered.deleteValue(phoeKey, item)
+    }
+  }
+
+  async unlinkCpid(id, cpid)
+  {
+    cpid = Array.isArray(cpid) ? cpid : [cpid]
+
+    const phocpKey = this.mapper.toProcessHistoryKeyIndexedOnlyByCpid(id)
+
+    for(const item of cpid)
+    {
+      await this.redis.unordered.deleteValue(phocpKey, item)
+    }
   }
 
   /**
@@ -69,11 +118,13 @@ class Writer
   {
     const
       process         = await this.reader.readEventById(id),
-      { domain, pid, eid, ppid, cpid, name } = process,
+      { domain, pid, ppid, name } = process,
       pdKey           = this.mapper.toProcessDataKey(),
       phKey           = this.mapper.toProcessHistoryKey(domain, pid),
       phonKey         = this.mapper.toProcessHistoryKeyIndexedOnlyByName(name),
       phopKey         = this.mapper.toProcessHistoryKeyIndexedOnlyByPid(pid),
+      phoeKey         = this.mapper.toProcessHistoryKeyIndexedOnlyByEid(id),
+      phocpKey        = this.mapper.toProcessHistoryKeyIndexedOnlyByCpid(id),
       phnKey          = this.mapper.toProcessHistoryKeyIndexedByName(domain, pid, name),
       queuedChannel   = this.mapper.toProcessEventQueuedChannel(),
       indexedChannel  = this.mapper.toProcessEventIndexedChannel()
@@ -83,11 +134,8 @@ class Writer
     await this.redis.ordered.deleteValue(phonKey, id)
     await this.redis.ordered.deleteValue(phopKey, id)
 
-    if(eid)
-    {
-      const phoeKey = this.mapper.toProcessHistoryKeyIndexedOnlyByEid(eid)
-      await this.redis.ordered.deleteValue(phoeKey, id)
-    }
+    await this.redis.unordered.delete(phoeKey)
+    await this.redis.unordered.delete(phocpKey)
 
     if(ppid)
     {
@@ -97,12 +145,6 @@ class Writer
 
       await this.redis.ordered.deleteValue(phoppKey,  id)
       await this.redis.ordered.deleteValue(phppKey,   id)
-    }
-
-    if(cpid)
-    {
-      const phocpKey = this.mapper.toProcessHistoryKeyIndexedOnlyByCpid(cpid)
-      await this.redis.ordered.deleteValue(phocpKey, id)
     }
 
     await this.redis.stream.delete(queuedChannel,   id)

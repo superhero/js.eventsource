@@ -31,6 +31,7 @@ const schema =
   'eid':
   {
     'type'      : 'string',
+    'collection': true,
     'not-empty' : true,
     'nullable'  : true,
     'default'   : null
@@ -45,6 +46,7 @@ const schema =
   'cpid':
   {
     'type'      : 'string',
+    'collection': true,
     'not-empty' : true,
     'nullable'  : true,
     'default'   : null
