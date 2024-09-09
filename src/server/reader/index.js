@@ -185,13 +185,11 @@ class Reader
   {
     const 
       pdKey = this.mapper.toProcessDataKey(),
-      event = await this.redis.hash.read(pdKey, id),
-      eid   = await this.readEid(id),
-      cpid  = await this.readCpid(id)
+      event = await this.redis.hash.read(pdKey, id)
 
     if(event)
     {
-      return { ...event, eid, cpid, id }
+      return { ...event, id }
     }
     // backwards compatibility...
     else
@@ -200,7 +198,7 @@ class Reader
         channel     = this.mapper.toProcessEventQueuedChannel(),
         streamEvent = await this.redis.stream.read(channel, id)
 
-      return { ...streamEvent, eid, cpid, id }
+      return { ...streamEvent, id }
     }
   }
 

@@ -20,7 +20,7 @@ class Writer
   async indexProcess(id, process)
   {
     const
-      { timestamp, domain, pid, eid, ppid, cpid, name } = process,
+      { timestamp, domain, pid, ppid, name } = process,
       pdKey           = this.mapper.toProcessDataKey(),
       phKey           = this.mapper.toProcessHistoryKey(domain, pid),
       phonKey         = this.mapper.toProcessHistoryKeyIndexedOnlyByName(name),
@@ -30,24 +30,11 @@ class Writer
       indexedChannel  = this.mapper.toProcessEventIndexedChannel(),
       score           = this.mapper.toScore(timestamp)
 
-    delete process.eid
-    delete process.cpid
-
     await this.redis.hash.write(pdKey, id, process)
     await this.redis.ordered.write(phKey,   id, score)
     await this.redis.ordered.write(phnKey,  id, score)
     await this.redis.ordered.write(phonKey, id, score)
     await this.redis.ordered.write(phopKey, id, score)
-
-    if(eid)
-    {
-      await this.linkEid(id, eid)
-    }
-
-    if(cpid)
-    {
-      await this.linkCpid(id, cpid)
-    }
 
     if(ppid)
     {

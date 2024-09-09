@@ -201,6 +201,36 @@ class EventsourceClient
     }
   }
 
+  async writeEid(id, eid)
+  {
+    try
+    {
+      return await this.writer.linkEid(id, eid)
+    }
+    catch(previousError)
+    {
+      const error = new Error('problem when writing the eid to the eventsource')
+      error.code  = 'E_EVENTSOURCE_CLIENT_WRITE_EID'
+      error.chain = { previousError, id, eid }
+      throw error
+    }
+  }
+
+  async writeCpid(id, cpid)
+  {
+    try
+    {
+      return await this.writer.linkCpid(id, cpid)
+    }
+    catch(previousError)
+    {
+      const error = new Error('problem when writing the cpid to the eventsource')
+      error.code  = 'E_EVENTSOURCE_CLIENT_WRITE_CPID'
+      error.chain = { previousError, id, cpid }
+      throw error
+    }
+  }
+
   /**
    * @param {string|number} timestamp value representing the time when the event should be persisted
    * @param {Eventsource.Schema.EntityProcess} input 

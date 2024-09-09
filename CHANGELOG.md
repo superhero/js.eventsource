@@ -1,4 +1,7 @@
 3.12.1
+- Altered the index of child process id (cpid) and entity id (eid) to be a seperate index from the event.
+
+3.12.1
 - Altered the structure to persist child process id (cpid) and entity id (eid) to the event/process entity, to allow a one-to-many relationship between the event and the associations.
 
 3.12.0
