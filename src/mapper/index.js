@@ -63,9 +63,9 @@ class EventsourceMapper
     return `phop:${pid}`
   }
 
-  toProcessHistoryKeyIndexedOnlyByEid(eid)
+  toProcessHistoryKeyIndexedOnlyByEid(id)
   {
-    return `phoe:${eid}`
+    return `phoe:${id}`
   }
 
   toProcessHistoryKeyIndexedOnlyByPpid(ppid)
@@ -73,9 +73,9 @@ class EventsourceMapper
     return `phopp:${ppid}`
   }
 
-  toProcessHistoryKeyIndexedOnlyByCpid(cpid)
+  toProcessHistoryKeyIndexedOnlyByCpid(id)
   {
-    return `phocp:${cpid}`
+    return `phocp:${id}`
   }
 
   toProcessHistoryKeyIndexedByPpid(domain, ppid)
