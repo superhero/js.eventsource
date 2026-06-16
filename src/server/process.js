@@ -91,7 +91,10 @@ class Process
 
     this.timestamp = timestamp
 
-    const timeout = Math.max(0, this.timestamp - Date.now())
+    const
+      timeout = Math.max(0, this.timestamp - Date.now()),
+      delay   = Math.min(timeout, 2147483647)
+
     clearTimeout(this.timeoutId)
     this.timeoutId = setTimeout(async () =>
     {
@@ -100,7 +103,7 @@ class Process
       await this.persistTimedoutScheduledProcesses()
       await this.bootstrapProcessSchedule()
     },
-    timeout)
+    delay)
   }
 
   async onProcessEventScheduledCleared()
@@ -125,16 +128,16 @@ class Process
       {
         await session.transaction.watch(scheduledKey)
         await session.transaction.begin()
-    
+
         const
           now   = Date.now(),
           list  = await this.redis.ordered.read(scheduledKey, 0, now)
-    
+
         for(const input of list)
         {
           try
           {
-            const 
+            const
               process   = this.mapper.toQueryProcess(input),
               timestamp = new Date(process.timestamp).toJSON()
 
@@ -196,7 +199,7 @@ class Process
    */
   async persistProcess(id, event)
   {
-    const 
+    const
       broadcast = event.broadcast === undefined ? true : !!event.broadcast,
       process   = this.mapper.toQueryProcess(event),
       { domain, pid, name } = process
@@ -215,7 +218,7 @@ class Process
 
     if(broadcast)
     {
-      const 
+      const
         ppChannel         = this.mapper.toProcessPersistedChannel(domain, name),
         ppPidChannel      = this.mapper.toProcessPersistedPidChannel(domain, pid),
         ppPidNameChannel  = this.mapper.toProcessPersistedPidNameChannel(domain, pid, name)
@@ -240,7 +243,7 @@ class Process
 
   async onProcessErrorQueued()
   {
-    const 
+    const
       channel = this.mapper.toProcessErrorQueuedChannel(),
       error   = await this.redis.stream.readGroup(channel, channel)
 
